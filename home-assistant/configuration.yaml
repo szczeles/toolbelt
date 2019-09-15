@@ -1,0 +1,86 @@
+homeassistant:
+  name: Nasz domek
+  latitude: 53.02
+  longitude: 18.81
+  elevation: 73
+  unit_system: metric
+  temperature_unit: C
+  # Pick yours from here: http://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+  time_zone: Europe/Warsaw
+
+# Enables the frontend
+frontend:
+
+# Show links to resources in log and frontend
+# introduction:
+
+# Track the sun
+sun:
+
+# Discover some devices automatically
+# discovery:
+
+# View all events in a logbook
+logbook:
+
+# Enables support for tracking state changes over time.
+history:
+
+# Checks for available updates
+updater:
+
+# Allows you to issue voice commands from the frontend
+#conversation:
+
+switch:
+ - platform: mqtt
+   name: "Sople"
+   state_topic: "home/outside/lights/onoff"
+   command_topic: "home/outside/lights/onoff/set"
+   retain: true
+
+mqtt:
+  broker: pi
+  port: 1883
+  client_id: home-assistant-1
+
+input_number:
+  lights_mode:
+    name: Tryb sopli
+    initial: 1
+    min: 1
+    max: 8
+    step: 1
+
+sensor:
+ - platform: mqtt
+   state_topic: 'home/outside/lights/mode'
+   name: "Aktualny tryb sopli"
+
+automation:
+- alias: 'Zmiana trybu'
+  trigger:
+    platform: state
+    entity_id: input_number.lights_mode
+  action:
+    service: mqtt.publish
+    data_template:
+      topic: home/outside/lights/mode/set
+      payload: '{{ trigger.to_state.state | int }}'
+      retain: true
+
+- alias: Turn on light when sun sets
+  trigger:
+    platform: sun
+    event: sunset
+    offset: "+00:30:00"
+  action:
+    service: homeassistant.turn_on
+    entity_id: switch.sople
+- alias: Turn off light at night
+  trigger:
+    platform: time
+    at: '23:00'
+  action:
+    service: homeassistant.turn_off
+    entity_id: switch.sople
