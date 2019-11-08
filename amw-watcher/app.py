@@ -26,6 +26,8 @@ email = ''
 for url, title in urls:
     response = requests.get(url).text
     match = re.search('Shop.values.OptionsConfiguration = "([^"]*)"', response)
+    if not match.group(1):
+        continue
     available_sizes_keys = json.loads(match.group(1))
     available_sizes = []
     for size in re.finditer('<option value="([^"]+)">([^<]+)</option>', response):
