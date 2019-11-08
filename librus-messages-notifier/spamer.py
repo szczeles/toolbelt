@@ -22,6 +22,6 @@ class Spamer:
         smtpserver.ehlo()
         smtpserver.starttls()
         smtpserver.login(self.gmail_user, self.gmail_pass)
-        smtpserver.sendmail(self.recipients[0], self.recipients, msg.as_string())
+        smtpserver.sendmail(f'{self.gmail_user}@gmail.com', self.recipients.split(','), msg.as_string())
         smtpserver.close()
 
