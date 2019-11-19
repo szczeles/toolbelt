@@ -15,3 +15,4 @@
  * [megatools](https://megous.com/git/megatools)
  * [plowshare](https://github.com/mcrapet/plowshare)
  * [rclone](https://github.com/rclone/rclone)
+ * [PosteRazor](https://posterazor.sourceforge.io/) -> splitting images into printable pages
