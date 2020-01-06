@@ -1,6 +1,7 @@
 #!/usr/bin/env python3.6
 
 import argparse
+import sys
 from spamer import Spamer
 from librus import LibrusSession
 from difflib import Differ
@@ -27,6 +28,10 @@ for message in session.list_messages(get_content=True):
         f'Wiadomość: ' + message.content.replace("\n", "<br/>"),
         '<hr/>'
     ])
+
+if len(current_state) == 0: # No messages, librus issue
+    print("No messages returned, skipping")
+    sys.exit(1)
 
 try:
     with open(args.state_file) as f:
