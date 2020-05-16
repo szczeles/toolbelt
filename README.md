@@ -16,3 +16,19 @@
  * [plowshare](https://github.com/mcrapet/plowshare)
  * [rclone](https://github.com/rclone/rclone)
  * [PosteRazor](https://posterazor.sourceforge.io/) -> splitting images into printable pages
+
+## Issue Let's encrypt cert
+
+    # issue
+    sudo mkdir /etc/letsencrypt /var/lib/letsencrypt
+    docker run -it --rm -p 80:80 --name certbot \
+                -v "/etc/letsencrypt:/etc/letsencrypt" \
+                -v "/var/lib/letsencrypt:/var/lib/letsencrypt" \
+                certbot/certbot:latest certonly \
+                --standalone
+
+    # renew
+    docker run -it --rm -p 80:80 --name certbot \
+                -v "/etc/letsencrypt:/etc/letsencrypt" \
+                -v "/var/lib/letsencrypt:/var/lib/letsencrypt" \
+                certbot/certbot:latest renew
