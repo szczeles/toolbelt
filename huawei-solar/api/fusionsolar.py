@@ -76,7 +76,7 @@ class FusionSolar:
 
         return [
             Stats(
-                ts=self.timezone.localize(datetime.fromtimestamp(row[0]/1000)),
+                ts=datetime.fromtimestamp(row[0]/1000, tz=self.timezone),
                 daily_energy=int(row[2]*1000),
                 current_power=int(row[3]*1000)
             ) for row in data.values() if row[1] != '-'

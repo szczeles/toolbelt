@@ -53,7 +53,6 @@ class PVOutput:
 
     def add_batch_status(self, statuses):
         chunk_size = 30
-        print(len(statuses))
         for chunk in [statuses[i:i + chunk_size] for i in range(0, len(statuses), chunk_size)]:
             data = ';'.join([f'{s.ts.strftime("%Y%m%d")},{s.ts.strftime("%H:%M")},{s.daily_energy},{s.current_power}' for s in chunk])
             self.call_api('addbatchstatus', {'data': data})
