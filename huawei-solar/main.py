@@ -34,6 +34,6 @@ while True:
         logging.info(f"Pushing {len(data_to_push)} records to PVOutput")
         pvoutput.add_batch_status(data_to_push)
         last_pushed_ts = data_to_push[-1].ts
-
-    logging.info("No data to update")
+    else:
+        logging.info("No data to update")
     time.sleep(5 * 60)
