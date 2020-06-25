@@ -85,8 +85,6 @@ class FusionSolar:
             'signalCodes': 'day_cap,active_power',
             'devTypeId': '1'
         })['data']
-        if type(data) != dict:
-            print(data)
 
         return [
             Stats(
