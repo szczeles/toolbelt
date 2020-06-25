@@ -21,3 +21,11 @@ and API keys for PVOutput:
         --fusionsolar-password xxxxx \
         --pvoutput-api-key xxxxxxx \
         --pvoutput-system-id 00000
+
+If this is the first time you run the script, add
+
+    --start-date YYYY-MM-DD
+
+indicating the date when your inverter was connected to 
+the network. Next scripts runs use status based on PVOutput
+data, so this parameter is not required.
