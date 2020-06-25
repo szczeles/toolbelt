@@ -3,12 +3,16 @@ import re
 from datetime import datetime
 from dataclasses import dataclass
 import logging
+import backoff
 
 @dataclass
 class Stats:
     ts: datetime
     daily_energy: int
     current_power: int
+
+class FusionSolarException(Exception):
+    pass
 
 class FusionSolar:
     def __init__(self, username, password, timezone):
@@ -19,6 +23,7 @@ class FusionSolar:
         self.token = None
         self.station = None
 
+    @backoff.on_exception(backoff.expo, (requests.exceptions.RequestException, FusionSolarException))
     def call_api(self, endpoint, body={}):
         url = f'https://eu5.fusionsolar.huawei.com/{endpoint}'
         response = requests.post(
@@ -27,10 +32,17 @@ class FusionSolar:
             headers={'XSRF-TOKEN': self.token, 'Referer': 'https://eu5.fusionsolar.huawei.com/index.jsp'},
             cookies={'JSESSIONID': self.session}
         )
-        if response.json()['failCode'] == 306:
-            self.login()
-            return self.call_api(endpoint, body)
-        return response.json()
+
+        if response.status_code != 200:
+            raise FusionSolarException(f"Invalid response code: {response.status_code}")
+
+        try:
+            if response.json()['failCode'] == 306:
+                self.login()
+                return self.call_api(endpoint, body)
+            return response.json()
+        except:
+            raise FusionSolarException(f"Invalid API output: {response.text}")
 
     def login(self):
         login_url = 'https://eu5.fusionsolar.huawei.com/cas/login?service=https%3A%2F%2Feu5.fusionsolar.huawei.com%2Flogin%2Fcas&locale=en_UK'
