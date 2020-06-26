@@ -1,29 +1,33 @@
 import argparse
 import logging
-import pytz
 import time
 from datetime import datetime, timedelta
 
-from api.pvoutput import PVOutput
+import pytz
 from api.fusionsolar import FusionSolar
+from api.pvoutput import PVOutput
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--timezone', default='Europe/Warsaw')
-parser.add_argument('--fusionsolar-user')
-parser.add_argument('--fusionsolar-password')
-parser.add_argument('--pvoutput-api-key')
-parser.add_argument('--pvoutput-system-id')
-parser.add_argument('--start-date', help="Date when PV system was connected, YYYY-MM-DD format")
+parser.add_argument("--timezone", default="Europe/Warsaw")
+parser.add_argument("--fusionsolar-user")
+parser.add_argument("--fusionsolar-password")
+parser.add_argument("--pvoutput-api-key")
+parser.add_argument("--pvoutput-system-id")
+parser.add_argument(
+    "--start-date", help="Date when PV system was connected, YYYY-MM-DD format"
+)
 args = parser.parse_args()
 
-logging.basicConfig(format='%(asctime)s %(message)s')
+logging.basicConfig(format="%(asctime)s %(message)s")
 logging.getLogger().setLevel(logging.INFO)
 
 timezone = pytz.timezone(args.timezone)
 pvoutput = PVOutput(args.pvoutput_system_id, args.pvoutput_api_key, timezone)
 fusionsolar = FusionSolar(args.fusionsolar_user, args.fusionsolar_password, timezone)
 devices = fusionsolar.list_devices()
-assert len(devices) == 1, "Multiple inverters found, select a device you want to synchronize"
+assert (
+    len(devices) == 1
+), "Multiple inverters found, select a device you want to synchronize"
 device = devices[0]
 
 last_pushed_ts = pvoutput.get_last_pushed_timestamp()
@@ -31,11 +35,13 @@ logging.info(f"Last data transfer to PV Output: {last_pushed_ts}")
 if last_pushed_ts is not None:
     starting_ts = last_pushed_ts
 else:
-    starting_ts = timezone.localize(datetime.strptime(args.start_date, '%Y-%m-%d'))
+    starting_ts = timezone.localize(datetime.strptime(args.start_date, "%Y-%m-%d"))
     if (timezone.localize(datetime.now()) - starting_ts).days < 14:
         logging.info(f"Starting with PV connection date: {starting_ts}")
     else:
-        starting_ts = (datetime.now(timezone) - timedelta(days=13)).replace(hour=0, minute=0, second=0, microsecond=0)
+        starting_ts = (datetime.now(timezone) - timedelta(days=13)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
         logging.info(f"Starting at earlist possible date, 13 days ago: {starting_ts}")
 
 while True:
