@@ -1,6 +1,16 @@
 import requests
+import backoff
 from datetime import datetime
 from dataclasses import dataclass
+
+class PVOutputException(Exception):
+    pass
+
+class PVOutputUnrecoverableException(Exception):
+    pass
+
+class PVOutputBadRequestException(Exception):
+    pass
 
 @dataclass
 class Status:
@@ -36,20 +46,30 @@ class PVOutput:
         self.api_key = api_key
         self.timezone = timezone
 
+    @backoff.on_exception(backoff.expo, (requests.exceptions.RequestException, PVOutputException))
     def call_api(self, endpoint, params={}):
         url = f'https://pvoutput.org/service/r2/{endpoint}.jsp'
-        return requests.get(url, headers={
+        response = requests.get(url, headers={
             'X-Pvoutput-Apikey': self.api_key,
             'X-Pvoutput-SystemId': str(self.system_id)
             }, params=params)
+        if response.status_code == 400:
+            raise PVOutputBadRequestException(response.text)
+        if response.status_code == 401:
+            raise PVOutputUnrecoverableException(response.text)
+        if response.status_code != 200:
+            raise PVOutputException(response.text)
+        return response
         
     def get_status(self, date=None):
         data = self.call_api('getstatus', {'d': date}).text
         return Status.parse(data, self.timezone)
     
     def get_last_pushed_timestamp(self):
-        status = self.get_status()
-        return status.ts
+        try:
+            return self.get_status().ts
+        except PVOutputBadRequestException:
+            return None
 
     def add_batch_status(self, statuses):
         chunk_size = 30
