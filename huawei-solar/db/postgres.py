@@ -20,7 +20,7 @@ class PostgreSQL(PvDB):
         cur.execute(
             f"""
         CREATE TABLE IF NOT EXISTS pv (
-            ts timestamp primary key,
+            ts timestamp without time zone primary key,
             {','.join(fields)}
         )"""
         )
@@ -36,6 +36,7 @@ class PostgreSQL(PvDB):
         )
 
         for row in data:
-            cur.execute("DELETE FROM pv WHERE ts = %s", (row.ts,))
-            cur.execute(insert, {**row.values, "ts": row.ts})
+            ts_local = row.ts.replace(tzinfo=None)
+            cur.execute("DELETE FROM pv WHERE ts = %s", (ts_local,))
+            cur.execute(insert, {**row.values, "ts": ts_local})
         self.conn.commit()
