@@ -1,5 +1,6 @@
 import psycopg2
 from psycopg2 import sql
+from psycopg2.extras import execute_batch
 
 from db.model import PvDB
 
@@ -30,13 +31,16 @@ class PostgreSQL(PvDB):
         self.ensure_initialized()
         cur = self.conn.cursor()
         columns = ["ts"] + self.signals.get_codes()
-        insert = sql.SQL("INSERT INTO pv({}) VALUES ({})").format(
+        insert = sql.SQL(
+            "INSERT INTO pv({}) VALUES ({}) ON CONFLICT DO NOTHING"
+        ).format(
             sql.SQL(", ").join(map(sql.Identifier, [c.lower() for c in columns])),
             sql.SQL(", ").join(map(sql.Placeholder, columns)),
         )
 
-        for row in data:
-            ts_local = row.ts.replace(tzinfo=None)
-            cur.execute("DELETE FROM pv WHERE ts = %s", (ts_local,))
-            cur.execute(insert, {**row.values, "ts": ts_local})
+        execute_batch(
+            cur,
+            insert,
+            [{**row.values, "ts": row.ts.replace(tzinfo=None)} for row in data],
+        )
         self.conn.commit()
