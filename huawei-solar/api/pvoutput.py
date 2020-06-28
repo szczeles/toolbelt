@@ -88,7 +88,7 @@ class PVOutput:
         ]:
             data = ";".join(
                 [
-                    f'{s.ts.strftime("%Y%m%d")},{s.ts.strftime("%H:%M")},{s.daily_energy},{s.current_power}'
+                    f'{s.ts.strftime("%Y%m%d")},{s.ts.strftime("%H:%M")},{int(s.get_daily_energy_wh())},{int(s.get_current_power_w())}'
                     for s in chunk
                 ]
             )

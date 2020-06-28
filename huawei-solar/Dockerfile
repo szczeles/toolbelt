@@ -1,6 +1,6 @@
 FROM python:3.8-slim
 
-RUN pip install requests pytz backoff
+RUN pip install requests pytz backoff psycopg2-binary
 
 COPY . .
 
