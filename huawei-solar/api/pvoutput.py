@@ -34,7 +34,7 @@ class Status:
         return Status(
             ts=timezone.localize(datetime.strptime(parts[0] + parts[1], "%Y%m%d%H:%M")),
             energy_generation=int(parts[2]),
-            power_generation=int(parts[3]),
+            power_generation=int(parts[3]) if parts[3] != "NaN" else None,
             energy_consumption=int(parts[4]) if parts[4] != "NaN" else None,
             power_consumption=int(parts[5]) if parts[5] != "NaN" else None,
             normalised_output=float(parts[6]),
