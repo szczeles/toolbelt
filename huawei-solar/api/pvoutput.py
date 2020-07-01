@@ -6,6 +6,7 @@ import requests
 
 from model import Output
 
+
 class PVOutputException(Exception):
     pass
 

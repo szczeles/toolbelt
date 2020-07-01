@@ -22,6 +22,7 @@ class PostgreSQL(Output):
             f"""
         CREATE TABLE IF NOT EXISTS pv (
             ts timestamp without time zone primary key,
+            ts_local timestamp without time zone,
             {','.join(fields)}
         )"""
         )
@@ -41,6 +42,9 @@ class PostgreSQL(Output):
         execute_batch(
             cur,
             insert,
-            [{**row.values, "ts": row.ts.replace(tzinfo=None)} for row in data],
+            [
+                {**row.values, "ts": row.ts, "ts_local": row.ts.replace(tzinfo=None)}
+                for row in data
+            ],
         )
         self.conn.commit()
