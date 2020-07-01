@@ -81,7 +81,7 @@ class PVOutput:
         except PVOutputBadRequestException:
             return None
 
-    def add_batch_status(self, statuses):
+    def save(self, statuses):
         chunk_size = 30
         for chunk in [
             statuses[i : i + chunk_size] for i in range(0, len(statuses), chunk_size)
