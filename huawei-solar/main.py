@@ -7,7 +7,7 @@ import pytz
 from api.fusionsolar import FusionSolar
 from api.pvoutput import PVOutput
 
-from db import PostgreSQL
+from db.postgres import PostgreSQL
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--timezone", default="Europe/Warsaw")

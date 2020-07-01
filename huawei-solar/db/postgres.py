@@ -2,10 +2,10 @@ import psycopg2
 from psycopg2 import sql
 from psycopg2.extras import execute_batch
 
-from db.model import PvDB
+from model import Output
 
 
-class PostgreSQL(PvDB):
+class PostgreSQL(Output):
     def __init__(self, uri, signals):
         self.uri = uri
         self.signals = signals

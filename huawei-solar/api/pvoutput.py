@@ -4,6 +4,7 @@ from datetime import datetime
 import backoff
 import requests
 
+from model import Output
 
 class PVOutputException(Exception):
     pass
@@ -44,7 +45,7 @@ class Status:
         print(statusline, timezone)
 
 
-class PVOutput:
+class PVOutput(Output):
     def __init__(self, system_id, api_key, timezone):
         self.system_id = system_id
         self.api_key = api_key
