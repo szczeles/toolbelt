@@ -7,14 +7,19 @@ import pytz
 from api.fusionsolar import FusionSolar
 from api.pvoutput import PVOutput
 
+from db.postgres import PostgreSQL
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--timezone", default="Europe/Warsaw")
 parser.add_argument("--fusionsolar-user")
 parser.add_argument("--fusionsolar-password")
 parser.add_argument("--pvoutput-api-key")
 parser.add_argument("--pvoutput-system-id")
+parser.add_argument("--postgres-uri", required=False)
 parser.add_argument(
-    "--start-date", help="Date when PV system was connected, YYYY-MM-DD format"
+    "--start-date",
+    help="Date when PV system was connected, YYYY-MM-DD format",
+    required=False,
 )
 args = parser.parse_args()
 
@@ -22,13 +27,18 @@ logging.basicConfig(format="%(asctime)s %(message)s")
 logging.getLogger().setLevel(logging.INFO)
 
 timezone = pytz.timezone(args.timezone)
-pvoutput = PVOutput(args.pvoutput_system_id, args.pvoutput_api_key, timezone)
 fusionsolar = FusionSolar(args.fusionsolar_user, args.fusionsolar_password, timezone)
 devices = fusionsolar.list_devices()
 assert (
     len(devices) == 1
 ), "Multiple inverters found, select a device you want to synchronize"
 device = devices[0]
+signals = fusionsolar.get_available_signals(device)
+logging.info("Available signals: %s", signals)
+pvoutput = PVOutput(args.pvoutput_system_id, args.pvoutput_api_key, timezone)
+outputs = [("PVOutput", pvoutput)]
+if args.postgres_uri is not None:
+    outputs.insert(0, ("PostgreSQL", PostgreSQL(args.postgres_uri, signals)))
 
 last_pushed_ts = pvoutput.get_last_pushed_timestamp()
 logging.info(f"Last data transfer to PV Output: {last_pushed_ts}")
@@ -45,11 +55,12 @@ else:
         logging.info(f"Starting at earlist possible date, 13 days ago: {starting_ts}")
 
 while True:
-    data = fusionsolar.query(device, starting_ts)
+    data = fusionsolar.query(device, starting_ts, signals)
     data_to_push = [row for row in data if row.ts > starting_ts]
     if len(data_to_push) > 0:
-        logging.info(f"Pushing {len(data_to_push)} records to PVOutput")
-        pvoutput.add_batch_status(data_to_push)
+        for output in outputs:
+            logging.info(f"Pushing {len(data_to_push)} records to {output[0]}")
+            output[1].save(data_to_push)
         starting_ts = data_to_push[-1].ts
     else:
         logging.info("No data to update")

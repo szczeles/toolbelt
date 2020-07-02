@@ -4,6 +4,8 @@ from datetime import datetime
 import backoff
 import requests
 
+from model import Output
+
 
 class PVOutputException(Exception):
     pass
@@ -44,7 +46,7 @@ class Status:
         print(statusline, timezone)
 
 
-class PVOutput:
+class PVOutput(Output):
     def __init__(self, system_id, api_key, timezone):
         self.system_id = system_id
         self.api_key = api_key
@@ -81,14 +83,14 @@ class PVOutput:
         except PVOutputBadRequestException:
             return None
 
-    def add_batch_status(self, statuses):
+    def save(self, statuses):
         chunk_size = 30
         for chunk in [
             statuses[i : i + chunk_size] for i in range(0, len(statuses), chunk_size)
         ]:
             data = ";".join(
                 [
-                    f'{s.ts.strftime("%Y%m%d")},{s.ts.strftime("%H:%M")},{s.daily_energy},{s.current_power}'
+                    f'{s.ts.strftime("%Y%m%d")},{s.ts.strftime("%H:%M")},{int(s.get_daily_energy_wh())},{int(s.get_current_power_w())}'
                     for s in chunk
                 ]
             )

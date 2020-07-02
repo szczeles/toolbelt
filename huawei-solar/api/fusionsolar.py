@@ -10,8 +10,41 @@ import requests
 @dataclass
 class Stats:
     ts: datetime
-    daily_energy: int
-    current_power: int
+    values: dict
+
+    def get_daily_energy_wh(self):
+        return self.values["day_cap"] * 1000
+
+    def get_current_power_w(self):
+        return self.values["active_power"] * 1000
+
+
+@dataclass
+class SignalSet:
+    signals: list
+
+    def __repr__(self):
+        return repr(self.signals)
+
+    def split_by_unit(self):
+        by_unit = {}
+        for signal in self.signals:
+            if signal.unit not in by_unit:
+                by_unit[signal.unit] = SignalSet([])
+            by_unit[signal.unit].signals.append(signal)
+        return by_unit
+
+    def get_codes(self):
+        return [signal.id for signal in self.signals]
+
+
+@dataclass
+class Signal:
+    id: str
+    unit: str
+
+    def __repr__(self):
+        return f'{self.id} ({self.unit.split("Unit")[0]})'
 
 
 class FusionSolarException(Exception):
@@ -93,24 +126,49 @@ class FusionSolar:
             dev["devId"] for dev in devices if dev["devTypeId"] == "1"
         ]  # devTypeId == 1 is probably an inverter
 
-    def query(self, device, date):
+    def get_available_signals(self, device):
+        data = self.call_api(
+            "signalconf/queryDevUnifiedSignals",
+            body={"devId": device, "devTypeId": "1"},
+        )["data"]
+
+        return SignalSet(
+            signals=[
+                Signal(row["id"], row["unit"].split(".")[-1])
+                for row in data
+                if row["pid"] == 1
+            ]
+        )
+
+    def query(self, device, date, signals):
+        merged_data = {}
+        for unit, subset in signals.split_by_unit().items():
+            single_unit_data = self.query_single_unit(device, date, subset)
+            for ts, values in single_unit_data.items():
+                if ts not in merged_data:
+                    merged_data[ts] = dict()
+                merged_data[ts].update(values)
+
+        return [
+            Stats(ts=datetime.fromtimestamp(ts / 1000, tz=self.timezone), values=values)
+            for ts, values in merged_data.items()
+            if len(values) == len(signals.get_codes())
+        ]
+
+    def query_single_unit(self, device, date, signals):
         data = self.call_api(
             "devManager/queryDevHistoryData",
             body={
                 "devId": device,
                 "sId": self.station,
                 "startTime": int(date.timestamp() * 1000),
-                "signalCodes": "day_cap,active_power",
+                "signalCodes": ",".join(signals.get_codes()),
                 "devTypeId": "1",
             },
         )["data"]
 
-        return [
-            Stats(
-                ts=datetime.fromtimestamp(row[0] / 1000, tz=self.timezone),
-                daily_energy=int(row[2] * 1000),
-                current_power=int(row[3] * 1000),
-            )
+        return {
+            int(row[0]): dict(zip(signals.get_codes(), row[2:]))
             for row in data.values()
             if row[1] != "-"
-        ]
+        }
