@@ -4,9 +4,10 @@ import time
 from datetime import datetime, timedelta
 
 import pytz
+
 from api.fusionsolar import FusionSolar
 from api.pvoutput import PVOutput
-
+from db.influxdb import InfluxDB
 from db.postgres import PostgreSQL
 
 parser = argparse.ArgumentParser()
@@ -15,7 +16,8 @@ parser.add_argument("--fusionsolar-user")
 parser.add_argument("--fusionsolar-password")
 parser.add_argument("--pvoutput-api-key")
 parser.add_argument("--pvoutput-system-id")
-parser.add_argument("--postgres-uri", required=False)
+parser.add_argument("--postgres-url", required=False)
+parser.add_argument("--influxdb-url", required=False)
 parser.add_argument(
     "--start-date",
     help="Date when PV system was connected, YYYY-MM-DD format",
@@ -37,8 +39,10 @@ signals = fusionsolar.get_available_signals(device)
 logging.info("Available signals: %s", signals)
 pvoutput = PVOutput(args.pvoutput_system_id, args.pvoutput_api_key, timezone)
 outputs = [("PVOutput", pvoutput)]
-if args.postgres_uri is not None:
-    outputs.insert(0, ("PostgreSQL", PostgreSQL(args.postgres_uri, signals)))
+if args.postgres_url is not None:
+    outputs.insert(0, ("PostgreSQL", PostgreSQL(args.postgres_url, signals)))
+if args.influxdb_url is not None:
+    outputs.insert(0, ("InfluxDB", InfluxDB(args.influxdb_url)))
 
 last_pushed_ts = pvoutput.get_last_pushed_timestamp()
 logging.info(f"Last data transfer to PV Output: {last_pushed_ts}")
