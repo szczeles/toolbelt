@@ -31,7 +31,7 @@ class PostgreSQL(Output):
     def save(self, data):
         self.ensure_initialized()
         cur = self.conn.cursor()
-        columns = ["ts"] + self.signals.get_codes()
+        columns = ["ts", "ts_local"] + self.signals.get_codes()
         insert = sql.SQL(
             "INSERT INTO pv({}) VALUES ({}) ON CONFLICT DO NOTHING"
         ).format(
