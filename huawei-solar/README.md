@@ -26,7 +26,7 @@ and API keys for PVOutput:
         --pvoutput-api-key xxxxxxx \
         --pvoutput-system-id 00000 \
         [--postgres-url postgres://user:pass@host/db] \
-        [--influxdb-url http://pv-monitoring_influxdb_1:8086] 
+        [--influxdb-url http://host:8086] 
 
 If this is the first time you run the script, add
 
