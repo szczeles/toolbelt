@@ -79,7 +79,7 @@ class FusionSolar:
             raise FusionSolarException(f"Invalid response code: {response.status_code}")
 
         try:
-            if response.json()["failCode"] == 306:
+            if response.json()["failCode"] in (306, 307):
                 self.login()
                 return self.call_api(endpoint, body)
             return response.json()
