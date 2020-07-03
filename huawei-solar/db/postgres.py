@@ -6,8 +6,8 @@ from model import Output
 
 
 class PostgreSQL(Output):
-    def __init__(self, uri, signals):
-        self.uri = uri
+    def __init__(self, url, signals):
+        self.url = url
         self.signals = signals
         self.conn = None
 
@@ -15,7 +15,7 @@ class PostgreSQL(Output):
         if self.conn is not None:
             return
 
-        self.conn = psycopg2.connect(self.uri)
+        self.conn = psycopg2.connect(self.url)
         cur = self.conn.cursor()
         fields = [f"{code} decimal(7, 3)" for code in self.signals.get_codes()]
         cur.execute(

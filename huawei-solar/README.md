@@ -6,7 +6,7 @@ in FusionSolar system) with [PVOutput](https://pvoutput.org/).
 
 Also, optionally, it pushes all available signals (like
 voltage&currrent on each phase and each string, efficiency,
-internal temprtature) into postgresql DB.
+internal temprtature) into PostgreSQL and InfluxDB.
 
 Lack of public api on FusionSolar requires simulating user login.
 The script sychronizes entire history and live data
@@ -25,7 +25,8 @@ and API keys for PVOutput:
         --fusionsolar-password xxxxx \
         --pvoutput-api-key xxxxxxx \
         --pvoutput-system-id 00000 \
-        [--postgres-uri postgres://user:pass@host/db]
+        [--postgres-url postgres://user:pass@host/db] \
+        [--influxdb-url http://host:8086] 
 
 If this is the first time you run the script, add
 
