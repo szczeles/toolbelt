@@ -73,6 +73,7 @@ class FusionSolar:
                 "Referer": "https://eu5.fusionsolar.huawei.com/index.jsp",
             },
             cookies={"JSESSIONID": self.session},
+            timeout=10,
         )
 
         if response.status_code != 200:
