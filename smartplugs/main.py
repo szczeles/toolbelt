@@ -1,13 +1,16 @@
 import logging
 import json
 import argparse
+import threading
+import queue
 
+import backoff
 import paho.mqtt.client as mqtt
 from influxdb_client import InfluxDBClient, Point, Configuration
 from influxdb_client.client.write_api import SYNCHRONOUS
 
 
-influxdb_client = None
+influxdb_pusher = None
 args = None
 
 def on_connect(client, userdata, flags, rc):
@@ -23,7 +26,7 @@ def on_message(client, userdata, msg):
     else:
         return
 
-    push_to_influxdb(point)
+    influxdb_pusher.write(point)
 
 def parse_state_msg(topic, msg):
     return Point.measurement('smartplugstate').time(msg['Time']).tag('spid', int(topic.split('/')[2])) \
@@ -56,8 +59,25 @@ def parse_sensor_msg(topic, msg):
             .field('voltage', msg['Voltage']) \
             .field('current', msg['Current']) \
 
-def push_to_influxdb(point):
-    influxdb_client.write_api(write_options=SYNCHRONOUS).write(bucket='mqtt/autogen', record=point)
+class InfluxAsyncPusher(threading.Thread):
+    def __init__(self, args):
+        super().__init__()
+        self.client = InfluxDBClient(url=args.influxdb_url, token="-", org="-")
+        self.client.api_client.default_headers['Authorization'] = f'Basic {args.influxdb_auth}'
+        self.queue = queue.Queue()
+
+    def write(self, point):
+        self.queue.put(point)
+
+    @backoff.on_exception(backoff.expo, Exception)
+    def push(self, point):
+        self.client.write_api(write_options=SYNCHRONOUS).write(bucket='mqtt/autogen', record=point)
+
+    def run(self):
+        while True:
+            self.push(self.queue.get())
+            self.queue.task_done()
+
 
 if __name__ == '__main__':
     logging.basicConfig(format="%(asctime)s %(message)s")
@@ -73,8 +93,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     logging.info('Starting MQTT to InfluxDB bridge, %s', args)
 
-    influxdb_client = InfluxDBClient(url=args.influxdb_url, token="-", org="-")
-    influxdb_client.api_client.default_headers['Authorization'] = f'Basic {args.influxdb_auth}'
+    influxdb_pusher = InfluxAsyncPusher(args) 
+    influxdb_pusher.start()
 
     mqtt_client = mqtt.Client(args.mqtt_client_id)
     mqtt_client.on_connect = on_connect
