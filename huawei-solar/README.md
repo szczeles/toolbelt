@@ -35,3 +35,7 @@ If this is the first time you run the script, add
 indicating the date when your inverter was connected to 
 the network. Next scripts runs use status based on PVOutput
 data, so this parameter is not required.
+
+## Deploy on Kubernetes
+
+See [Kubernetes.md](Kubernetes.md)
