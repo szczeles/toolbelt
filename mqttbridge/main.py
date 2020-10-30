@@ -3,6 +3,7 @@ import json
 import argparse
 import threading
 import queue
+from datetime import datetime
 
 import backoff
 import paho.mqtt.client as mqtt
@@ -23,10 +24,20 @@ def on_message(client, userdata, msg):
         point = parse_state_msg(msg.topic, json.loads(msg.payload.decode('utf-8')))
     elif msg.topic.endswith('SENSOR'):
         point = parse_sensor_msg(msg.topic, json.loads(msg.payload.decode('utf-8')))
+    elif msg.topic.startswith('tele/temp'):
+        point = parse_mitemp_msg(msg.topic, json.loads(msg.payload.decode('utf-8')))
     else:
         return
 
     influxdb_pusher.write(point)
+
+def parse_mitemp_msg(topic, msg):
+    sensor_name = topic.split('/')[-1]
+    return Point.measurement('mitemperature').time(datetime.fromtimestamp(msg['timestamp'])).tag('room', sensor_name) \
+            .field('temperature', msg['temperature']) \
+            .field('humidity', msg['humidity']) \
+            .field('batt_voltage', msg['batt_voltage']) \
+            .field('batt_level', msg['batt_level']) 
 
 def parse_state_msg(topic, msg):
     return Point.measurement('smartplugstate').time(msg['Time']).tag('spid', int(topic.split('/')[2])) \
@@ -41,7 +52,7 @@ def parse_state_msg(topic, msg):
             .field('wifi_channel', msg['Wifi']['Channel']) \
             .field('wifi_rssi', msg['Wifi']['RSSI']) \
             .field('wifi_signal', msg['Wifi']['Signal']) \
-            .field('wifi_link_count', msg['Wifi']['LinkCount']) \
+            .field('wifi_link_count', msg['Wifi']['LinkCount'])
 
 def parse_sensor_msg(topic, msg):
     time = msg['Time']
@@ -57,7 +68,7 @@ def parse_sensor_msg(topic, msg):
             .field('reactive_power', msg['ReactivePower']) \
             .field('factor', msg['Factor']) \
             .field('voltage', msg['Voltage']) \
-            .field('current', msg['Current']) \
+            .field('current', msg['Current'])
 
 class InfluxAsyncPusher(threading.Thread):
     def __init__(self, args):
@@ -86,7 +97,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--influxdb-url", default='https://influxdb.mlops.eu')
     parser.add_argument("--influxdb-auth", required=True)
-    parser.add_argument("--mqtt-topic", default='tele/smartplug/+/+')
+    parser.add_argument("--mqtt-topic", default='tele/#')
     parser.add_argument("--mqtt-client-id", default='MQTTInfluxDBBridge')
     parser.add_argument("--mqtt-host", default='192.168.0.192')
     parser.add_argument("--mqtt-port", type=int, default=1883)
