@@ -1,7 +1,7 @@
 FROM python:3.8-slim
 
 RUN apt update && \
-    apt install -y mosquitto-clients build-essential libglib2.0-0 libglib2.0-dev --no-install-recommends && \
+    apt install -y mosquitto-clients build-essential libglib2.0-0 libglib2.0-dev psmisc --no-install-recommends && \
     pip install bluepy && \
     apt purge -y build-essential libglib2.0-dev && \
     apt autoremove -y && \
