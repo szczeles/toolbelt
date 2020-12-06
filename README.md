@@ -10,6 +10,18 @@
 
     rsync -r -a -v -e ssh /media/mario/disk/* nas:/share/CACHEDEV1_DATA/homes/admin/Qsync/sony
 
+
+## Backup
+
+Elasticsearch (create json files)
+
+    docker run --net=host --rm -ti -v `pwd`/esbackup:/esbackup --entrypoint /usr/local/bin/multielasticdump elasticdump/elasticsearch-dump --match='^.*$' --input=http://localhost:9200 --output=/esbackup --limit 4000
+
+Postgres (to sql and restore)
+
+    pg_dump -U postgres > pv.sql
+    cat ~/pv.sql | kubectl exec -ti postgres-85f94bb849-g7rc4 -n pv -- psql -U postgres
+
 ## Links
 
  * [megatools](https://megous.com/git/megatools)
@@ -32,3 +44,8 @@
                 -v "/etc/letsencrypt:/etc/letsencrypt" \
                 -v "/var/lib/letsencrypt:/var/lib/letsencrypt" \
                 certbot/certbot:latest renew
+
+## Local MQTT
+
+docker run -d -p 1883:1883 --restart always eclipse-mosquitto
+

@@ -39,3 +39,8 @@ data, so this parameter is not required.
 ## Deploy on Kubernetes
 
 See [Kubernetes.md](Kubernetes.md)
+
+## Pushing to Github Docker Registry
+
+    docker build -t  docker.pkg.github.com/szczeles/toolbelt/huawei-solar:0.2 .
+    docker push docker.pkg.github.com/szczeles/toolbelt/huawei-solar:0.2
