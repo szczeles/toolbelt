@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import backoff
 import requests
@@ -43,7 +43,6 @@ class Status:
             temperature=float(parts[7]) if parts[7] != "NaN" else None,
             voltage=float(parts[8]) if parts[8] != "NaN" else None,
         )
-        print(statusline, timezone)
 
 
 class PVOutput(Output):
@@ -81,6 +80,14 @@ class PVOutput(Output):
         try:
             return self.get_status().ts
         except PVOutputBadRequestException:
+            # >7 days maintenance?
+            for day in range(14):
+                try:
+                    date = (datetime.now() - timedelta(days=day)).strftime("%Y%m%d")
+                    return self.get_status(date).ts
+                except PVOutputBadRequestException:
+                    pass
+
             return None
 
     def save(self, statuses):
