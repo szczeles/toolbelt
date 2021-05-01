@@ -12,10 +12,10 @@ from db.postgres import PostgreSQL
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--timezone", default="Europe/Warsaw")
-parser.add_argument("--fusionsolar-user")
-parser.add_argument("--fusionsolar-password")
-parser.add_argument("--pvoutput-api-key")
-parser.add_argument("--pvoutput-system-id")
+parser.add_argument("--fusionsolar-user", required=True)
+parser.add_argument("--fusionsolar-password", required=True)
+parser.add_argument("--pvoutput-api-key", required=True)
+parser.add_argument("--pvoutput-system-id", required=True)
 parser.add_argument("--postgres-url", required=False)
 parser.add_argument("--influxdb-url", required=False)
 parser.add_argument(
