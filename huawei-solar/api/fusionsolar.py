@@ -61,6 +61,9 @@ class Signal:
         'PV2 input voltage': 'pv2_u',
         'PV1 input current': 'pv1_i',
         'PV2 input current': 'pv2_i',
+        'Grid phase A voltage': 'a_u',
+        'Grid phase B voltage': 'b_u',
+        'Grid phase C voltage': 'c_u',
     }
 
     def __repr__(self):
@@ -156,9 +159,10 @@ class FusionSolar:
         )['data']['signalList']
         if len(data) == 0:
             raise FusionSolarException("No signals returned")
+
         return SignalSet(
             signals=[
-                Signal(row["id"], row["name"], row["unit"]["unit"])
+                Signal(row["id"], row["name"], row["unit"].get("unit", ""))
                 for row in data
             ]
         )
