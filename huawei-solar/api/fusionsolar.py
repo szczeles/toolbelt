@@ -66,6 +66,8 @@ class Signal:
         'Grid phase C voltage': 'c_u',
         'MPPT 1 DC cumulative energy': 'mppt_1_cap',
         'MPPT 2 DC cumulative energy': 'mppt_2_cap',
+        'Grid voltage': 'grid_voltage',
+        'Grid current': 'grid_current',
     }
 
     def __repr__(self):
