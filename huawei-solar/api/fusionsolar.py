@@ -152,6 +152,7 @@ class FusionSolar:
             "rest/neteco/web/config/domain/v1/power-station/station-list",
             params={"params.parentDn": company_id},
         )
+        logging.debug("Station info: %s", station_info["data"])
         return station_info["data"][0]["dn"]
 
     def list_devices(self):
@@ -159,6 +160,7 @@ class FusionSolar:
             "rest/neteco/web/config/device/v1/device-list",
             params={"conditionParams.parentDn": self.get_station_id()},
         )["data"]
+        logging.debug("Devices: %s", devices)
         return [dev["dn"] for dev in devices if dev["mocTypeName"] == "Inverter"]
 
     def get_available_signals(self, device):
@@ -209,6 +211,13 @@ class FusionSolar:
                 "deviceDn": device,
                 "date": int(timestamp * 1000),
             },
+        )
+        logging.debug(
+            "Single unit data for device %s, timestamp %s and signals %s: %s",
+            device,
+            timestamp,
+            signals,
+            data,
         )
         merged = defaultdict(dict)
         for signal in signals.signals:

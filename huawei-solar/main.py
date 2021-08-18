@@ -21,6 +21,7 @@ parser.add_argument("--pvoutput-api-key", required=True)
 parser.add_argument("--pvoutput-system-id", required=True)
 parser.add_argument("--postgres-url", required=False)
 parser.add_argument("--influxdb-url", required=False)
+parser.add_argument("--verbose", help="increase output verbosity", action="store_true")
 parser.add_argument(
     "--start-date",
     help="Date when PV system was connected, YYYY-MM-DD format",
@@ -29,7 +30,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 logging.basicConfig(format="%(asctime)s %(message)s")
-logging.getLogger().setLevel(logging.INFO)
+logging.getLogger().setLevel(logging.DEBUG if args.verbose else logging.INFO)
 
 timezone = pytz.timezone(args.timezone)
 fusionsolar = FusionSolar(
