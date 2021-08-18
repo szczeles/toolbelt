@@ -14,6 +14,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--timezone", default="Europe/Warsaw")
 parser.add_argument("--fusionsolar-user", required=True)
 parser.add_argument("--fusionsolar-password", required=True)
+parser.add_argument(
+    "--fusionsolar-region", default="intlobt"
+)  # automatic server selection: https://forum.huawei.com/enterprise/en/forum.php?mod=redirect&goto=findpost&ptid=707527&pid=3828837
 parser.add_argument("--pvoutput-api-key", required=True)
 parser.add_argument("--pvoutput-system-id", required=True)
 parser.add_argument("--postgres-url", required=False)
@@ -29,7 +32,12 @@ logging.basicConfig(format="%(asctime)s %(message)s")
 logging.getLogger().setLevel(logging.INFO)
 
 timezone = pytz.timezone(args.timezone)
-fusionsolar = FusionSolar(args.fusionsolar_user, args.fusionsolar_password, timezone)
+fusionsolar = FusionSolar(
+    args.fusionsolar_user,
+    args.fusionsolar_password,
+    timezone,
+    region=args.fusionsolar_region,
+)
 devices = fusionsolar.list_devices()
 assert (
     len(devices) == 1
