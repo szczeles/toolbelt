@@ -49,3 +49,10 @@ Postgres (to sql and restore)
 
 docker run -d -p 1883:1883 --restart always eclipse-mosquitto
 
+## /etc/hosts
+
+```
+192.168.0.164   nas
+192.168.0.94    smartplug1
+192.168.0.220   smartplug2
+```
