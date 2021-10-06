@@ -1,8 +1,8 @@
 import logging
 import re
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
-from collections import defaultdict
 
 import backoff
 import requests
@@ -41,6 +41,7 @@ class SignalSet:
     def get_codes(self):
         return [signal.get_code() for signal in self.signals]
 
+
 @dataclass
 class Signal:
     id: int
@@ -48,30 +49,30 @@ class Signal:
     unit: str
 
     name_to_code_map = {
-        'Grid phase A current': 'a_i',
-        'Grid phase B current': 'b_i',
-        'Grid phase C current': 'c_i',
-        'Power factor': 'power_factor',
-        'Grid frequency': 'elec_freq',
-        'Active power': 'active_power',
-        'Output reactive power': 'reactive_power',
-        'Daily energy': 'day_cap',
-        'Total input power': 'mppt_power',
-        'PV1 input voltage': 'pv1_u',
-        'PV2 input voltage': 'pv2_u',
-        'PV1 input current': 'pv1_i',
-        'PV2 input current': 'pv2_i',
-        'Grid phase A voltage': 'a_u',
-        'Grid phase B voltage': 'b_u',
-        'Grid phase C voltage': 'c_u',
-        'MPPT 1 DC cumulative energy': 'mppt_1_cap',
-        'MPPT 2 DC cumulative energy': 'mppt_2_cap',
-        'Grid voltage': 'grid_voltage',
-        'Grid current': 'grid_current',
+        "Grid phase A current": "a_i",
+        "Grid phase B current": "b_i",
+        "Grid phase C current": "c_i",
+        "Power factor": "power_factor",
+        "Grid frequency": "elec_freq",
+        "Active power": "active_power",
+        "Output reactive power": "reactive_power",
+        "Daily energy": "day_cap",
+        "Total input power": "mppt_power",
+        "PV1 input voltage": "pv1_u",
+        "PV2 input voltage": "pv2_u",
+        "PV1 input current": "pv1_i",
+        "PV2 input current": "pv2_i",
+        "Grid phase A voltage": "a_u",
+        "Grid phase B voltage": "b_u",
+        "Grid phase C voltage": "c_u",
+        "MPPT 1 DC cumulative energy": "mppt_1_cap",
+        "MPPT 2 DC cumulative energy": "mppt_2_cap",
+        "Grid voltage": "grid_voltage",
+        "Grid current": "grid_current",
     }
 
     def __repr__(self):
-        return f'{self.name} ({self.unit})'
+        return f"{self.name} ({self.unit})"
 
     def get_code(self):
         return self.name_to_code_map[self.name]
@@ -82,10 +83,11 @@ class FusionSolarException(Exception):
 
 
 class FusionSolar:
-    def __init__(self, username, password, timezone):
+    def __init__(self, username, password, timezone, region):
         self.username = username
         self.password = password
         self.timezone = timezone
+        self.region = region
         self.session = None
         self.station = None
 
@@ -93,20 +95,20 @@ class FusionSolar:
         backoff.expo, (requests.exceptions.RequestException, FusionSolarException)
     )
     def call_api(self, endpoint, params={}):
-        url = f"https://eu5.fusionsolar.huawei.com/{endpoint}"
+        url = f"https://{self.region}.fusionsolar.huawei.com/{endpoint}"
         response = requests.get(
             url=url,
             params=params,
-            cookies={
-                'bspsession': self.session
-            },
+            cookies={"bspsession": self.session},
             timeout=60,
         )
 
         if response.status_code != 200:
-            raise FusionSolarException(f"Invalid response code: {response.status_code}")
+            raise FusionSolarException(
+                f"Invalid response code: {response.status_code}, content: {response.text}"
+            )
 
-        if response.headers['Content-Type'].startswith('text/html'):
+        if response.headers["Content-Type"].startswith("text/html"):
             self.login()
             return self.call_api(endpoint, params)
 
@@ -116,27 +118,30 @@ class FusionSolar:
             raise FusionSolarException(f"Invalid API output: {response.text}")
 
     def login(self):
-        login_url = "https://eu5.fusionsolar.huawei.com/unisso/login.action"
+        login_url = f"https://{self.region}.fusionsolar.huawei.com/unisso/login.action"
         session = requests.Session()
         session.get(login_url)
 
         user_validation_response = session.post(
-            'https://eu5.fusionsolar.huawei.com/unisso/v2/validateUser.action',
+            f"https://{self.region}.fusionsolar.huawei.com/unisso/v2/validateUser.action",
             params={
-                'service': '/unisess/v1/auth?service=%2Fnetecowebext%2Fhome%2Findex.html%23%2FLOGIN'
+                "service": "/unisess/v1/auth?service=%2Fnetecowebext%2Fhome%2Findex.html%23%2FLOGIN"
             },
             json={
                 "organizationName": "",
                 "username": self.username,
                 "password": self.password,
                 "verifycode": "",
-                "multiRegionName": ""
+                "multiRegionName": "",
             },
         )
         user_validation_result = user_validation_response.json()
-        auth_result = session.get('https://eu5.fusionsolar.huawei.com' + user_validation_result['redirectURL'])
+        auth_result = session.get(
+            f"https://{self.region}.fusionsolar.huawei.com"
+            + user_validation_result["redirectURL"]
+        )
         assert auth_result.status_code == 200
-        self.session = session.cookies['bspsession']
+        self.session = session.cookies["bspsession"]
         self.station = self.get_station_id()
         logging.info(
             f"Login successful, session: {self.session}, station: {self.station}"
@@ -144,23 +149,27 @@ class FusionSolar:
 
     def get_station_id(self):
         company_info = self.call_api("rest/neteco/web/organization/v2/company/current")
-        company_id = company_info['data']['moDn']
-        station_info = self.call_api('rest/neteco/web/config/domain/v1/power-station/station-list', params={'params.parentDn': company_id})
-        return station_info['data'][0]['dn']
+        company_id = company_info["data"]["moDn"]
+        station_info = self.call_api(
+            "rest/neteco/web/config/domain/v1/power-station/station-list",
+            params={"params.parentDn": company_id},
+        )
+        logging.debug("Station info: %s", station_info["data"])
+        return station_info["data"][0]["dn"]
 
     def list_devices(self):
         devices = self.call_api(
-            "rest/neteco/web/config/device/v1/device-list", params={'conditionParams.parentDn': self.get_station_id()}
-        )['data']
-        return [
-            dev["dn"] for dev in devices if dev["mocTypeName"] == "Inverter"
-        ]
+            "rest/neteco/web/config/device/v1/device-list",
+            params={"conditionParams.parentDn": self.get_station_id()},
+        )["data"]
+        logging.debug("Devices: %s", devices)
+        return [dev["dn"] for dev in devices if dev["mocTypeName"] == "Inverter"]
 
     def get_available_signals(self, device):
         data = self.call_api(
             "rest/pvms/web/device/v1/device-statistics-signal",
-            params={'deviceDn': device}
-        )['data']['signalList']
+            params={"deviceDn": device},
+        )["data"]["signalList"]
         if len(data) == 0:
             raise FusionSolarException("No signals returned")
 
@@ -196,20 +205,28 @@ class FusionSolar:
             **self.query_single_unit(device, date.timestamp() + 24 * 3600, signals),
         }
 
-
     def query_single_unit(self, device, timestamp, signals):
         data = self.call_api(
             "rest/pvms/web/device/v1/device-history-data",
             params={
-                'signalIds': signals.get_ids(),
-                'deviceDn': device,
-                'date': int(timestamp * 1000)
-            }
+                "signalIds": signals.get_ids(),
+                "deviceDn": device,
+                "date": int(timestamp * 1000),
+            },
+        )
+        logging.debug(
+            "Single unit data for device %s, timestamp %s and signals %s: %s",
+            device,
+            timestamp,
+            signals,
+            data,
         )
         merged = defaultdict(dict)
         for signal in signals.signals:
-            for sample in data['data'][str(signal.id)]['pmDataList']:
-                if 'dnId' not in sample:
+            for sample in data["data"][str(signal.id)]["pmDataList"]:
+                if "dnId" not in sample:
                     continue
-                merged[sample['startTime']].update({signal.get_code(): sample['counterValue']})
+                merged[sample["startTime"]].update(
+                    {signal.get_code(): sample["counterValue"]}
+                )
         return merged
