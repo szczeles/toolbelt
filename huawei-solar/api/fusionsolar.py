@@ -104,7 +104,9 @@ class FusionSolar:
         )
 
         if response.status_code != 200:
-            raise FusionSolarException(f"Invalid response code: {response.status_code}")
+            raise FusionSolarException(
+                f"Invalid response code: {response.status_code}, content: {response.text}"
+            )
 
         if response.headers["Content-Type"].startswith("text/html"):
             self.login()
