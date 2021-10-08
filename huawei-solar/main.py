@@ -14,6 +14,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--timezone", default="Europe/Warsaw")
 parser.add_argument("--fusionsolar-user", required=True)
 parser.add_argument("--fusionsolar-password", required=True)
+parser.add_argument("--fusionsolar-station-id", required=False)
 parser.add_argument(
     "--fusionsolar-region", default="intlobt"
 )  # automatic server selection: https://forum.huawei.com/enterprise/en/forum.php?mod=redirect&goto=findpost&ptid=707527&pid=3828837
@@ -38,6 +39,7 @@ fusionsolar = FusionSolar(
     args.fusionsolar_password,
     timezone,
     region=args.fusionsolar_region,
+    station_id=args.fusionsolar_station_id,
 )
 devices = fusionsolar.list_devices()
 assert (
