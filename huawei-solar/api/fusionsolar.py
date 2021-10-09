@@ -60,8 +60,12 @@ class Signal:
         "Total input power": "mppt_power",
         "PV1 input voltage": "pv1_u",
         "PV2 input voltage": "pv2_u",
+        "PV3 input voltage": "pv3_u",
+        "PV4 input voltage": "pv4_u",
         "PV1 input current": "pv1_i",
         "PV2 input current": "pv2_i",
+        "PV3 input current": "pv3_i",
+        "PV4 input current": "pv4_i",
         "Grid phase A voltage": "a_u",
         "Grid phase B voltage": "b_u",
         "Grid phase C voltage": "c_u",
@@ -83,11 +87,12 @@ class FusionSolarException(Exception):
 
 
 class FusionSolar:
-    def __init__(self, username, password, timezone, region):
+    def __init__(self, username, password, timezone, region, station_id):
         self.username = username
         self.password = password
         self.timezone = timezone
         self.region = region
+        self.station_id = station_id
         self.session = None
         self.station = None
 
@@ -142,7 +147,7 @@ class FusionSolar:
         )
         assert auth_result.status_code == 200
         self.session = session.cookies["bspsession"]
-        self.station = self.get_station_id()
+        self.station = self.station_id or self.get_station_id()
         logging.info(
             f"Login successful, session: {self.session}, station: {self.station}"
         )
@@ -160,7 +165,9 @@ class FusionSolar:
     def list_devices(self):
         devices = self.call_api(
             "rest/neteco/web/config/device/v1/device-list",
-            params={"conditionParams.parentDn": self.get_station_id()},
+            params={
+                "conditionParams.parentDn": self.station_id or self.get_station_id()
+            },
         )["data"]
         logging.debug("Devices: %s", devices)
         return [dev["dn"] for dev in devices if dev["mocTypeName"] == "Inverter"]
