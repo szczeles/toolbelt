@@ -74,7 +74,6 @@ class InfluxAsyncPusher(threading.Thread):
     def __init__(self, args):
         super().__init__()
         self.client = InfluxDBClient(url=args.influxdb_url, token="-", org="-")
-        self.client.api_client.default_headers['Authorization'] = f'Basic {args.influxdb_auth}'
         self.queue = queue.Queue()
 
     def write(self, point):
@@ -95,12 +94,14 @@ if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--influxdb-url", default='https://influxdb.mlops.eu')
-    parser.add_argument("--influxdb-auth", required=True)
+    parser.add_argument("--influxdb-url", default='http://influxdb.pv.svc:8086')
     parser.add_argument("--mqtt-topic", default='tele/#')
     parser.add_argument("--mqtt-client-id", default='MQTTInfluxDBBridge')
-    parser.add_argument("--mqtt-host", default='192.168.0.192')
-    parser.add_argument("--mqtt-port", type=int, default=1883)
+    parser.add_argument("--mqtt-host", default='c0.mlops.eu')
+    parser.add_argument("--mqtt-port", type=int, default=30505)
+    parser.add_argument("--mqtt-ca-crt")
+    parser.add_argument("--mqtt-client-crt")
+    parser.add_argument("--mqtt-client-key")
     args = parser.parse_args()
     logging.info('Starting MQTT to InfluxDB bridge, %s', args)
 
@@ -108,6 +109,11 @@ if __name__ == '__main__':
     influxdb_pusher.start()
 
     mqtt_client = mqtt.Client(args.mqtt_client_id)
+    mqtt_client.tls_set(
+        args.mqtt_ca_crt,
+        args.mqtt_client_crt,
+        args.mqtt_client_key,
+    )
     mqtt_client.on_connect = on_connect
     mqtt_client.on_message = on_message
     mqtt_client.connect(args.mqtt_host, args.mqtt_port)

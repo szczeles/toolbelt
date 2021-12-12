@@ -26,3 +26,9 @@
 
     docker build -t mqtt2influxdb .
     docker run -d --restart=always --name mqttbridge mqtt2influxdb:latest --influxdb-auth $INFLUXDB_AUTH
+
+## Deployment on k8s
+
+    kubectl create secret generic -n mqtt mqttbridge --from-file=ca.crt=$HOME/eclipse-mosquitto-mqtt-broker-helm-chart/ca.crt --from-file=client.crt=$HOME/eclipse-mosquitto-mqtt-broker-helm-chart/client.crt --from-file=client.key=$HOME/eclipse-mosquitto-mqtt-broker-helm-chart/client.key
+    docker build -t mqtt2influxdb:0.1 .
+    kubectl apply -f k8s.yaml
