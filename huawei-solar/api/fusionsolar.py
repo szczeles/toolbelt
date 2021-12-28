@@ -95,12 +95,16 @@ class FusionSolar:
         self.station_id = station_id
         self.session = None
         self.station = None
+        self.api_base = None
 
     @backoff.on_exception(
         backoff.expo, (requests.exceptions.RequestException, FusionSolarException)
     )
     def call_api(self, endpoint, params={}):
-        url = f"https://{self.region}.fusionsolar.huawei.com/{endpoint}"
+        if self.session is None or self.api_base is None:
+            self.login()
+
+        url = f"{self.api_base}/{endpoint}"
         response = requests.get(
             url=url,
             params=params,
@@ -108,14 +112,14 @@ class FusionSolar:
             timeout=60,
         )
 
+        if response.headers["Content-Type"].startswith("text/html"):
+            self.login()
+            return self.call_api(endpoint, params)
+
         if response.status_code != 200:
             raise FusionSolarException(
                 f"Invalid response code: {response.status_code}, content: {response.text}"
             )
-
-        if response.headers["Content-Type"].startswith("text/html"):
-            self.login()
-            return self.call_api(endpoint, params)
 
         try:
             return response.json()
@@ -130,21 +134,17 @@ class FusionSolar:
         user_validation_response = session.post(
             f"https://{self.region}.fusionsolar.huawei.com/unisso/v2/validateUser.action",
             params={
-                "service": "/unisess/v1/auth?service=%2Fnetecowebext%2Fhome%2Findex.html%23%2FLOGIN"
+                "service": "/unisess/v1/auth?service=%2Fnetecowebext%2Fhome%2Findex.html"
             },
             json={
                 "organizationName": "",
                 "username": self.username,
                 "password": self.password,
-                "verifycode": "",
-                "multiRegionName": "",
             },
         )
         user_validation_result = user_validation_response.json()
-        auth_result = session.get(
-            f"https://{self.region}.fusionsolar.huawei.com"
-            + user_validation_result["redirectURL"]
-        )
+        self.api_base = user_validation_result["redirectURL"]
+        auth_result = session.get(user_validation_result["redirectURL"])
         assert auth_result.status_code == 200
         self.session = session.cookies["bspsession"]
         self.station = self.station_id or self.get_station_id()
