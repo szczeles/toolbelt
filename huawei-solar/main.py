@@ -19,9 +19,7 @@ parser.add_argument(
     required=False,
     help="Fixed station id, use if the app can't discover it automatically. Format: NE-01234567",
 )
-parser.add_argument(
-    "--fusionsolar-region", default="intlobt"
-)  # automatic server selection: https://forum.huawei.com/enterprise/en/forum.php?mod=redirect&goto=findpost&ptid=707527&pid=3828837
+parser.add_argument("--fusionsolar-region", required=True)
 parser.add_argument("--pvoutput-api-key", required=True)
 parser.add_argument("--pvoutput-system-id", required=True)
 parser.add_argument("--postgres-url", required=False)

@@ -23,6 +23,7 @@ and API keys for PVOutput:
     docker run -d huawei-pvoutput:latest \
         --fusionsolar-user xxxx@xxxx.com \
         --fusionsolar-password xxxxx \
+        --fusionsolar-region xxxx \
         --pvoutput-api-key xxxxxxx \
         --pvoutput-system-id 00000 \
         [--postgres-url postgres://user:pass@host/db] \
