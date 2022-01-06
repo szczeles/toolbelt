@@ -143,8 +143,13 @@ class FusionSolar:
             },
         )
         user_validation_result = user_validation_response.json()
-        self.api_base = user_validation_result["redirectURL"]
-        auth_result = session.get(user_validation_result["redirectURL"])
+        if user_validation_result["redirectURL"].startswith("/unisess/"):
+            self.api_base = f"https://{self.region}.fusionsolar.huawei.com"
+            redirect_url = self.api_base + user_validation_result["redirectURL"]
+        else:
+            self.api_base = user_validation_result["redirectURL"]
+            redirect_url = user_validation_result["redirectURL"]
+        auth_result = session.get(redirect_url)
         assert auth_result.status_code == 200
         self.session = session.cookies["bspsession"]
         self.station = self.station_id or self.get_station_id()
