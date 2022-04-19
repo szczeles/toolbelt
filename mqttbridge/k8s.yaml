@@ -22,7 +22,7 @@ spec:
         - /etc/certs/client.crt
         - --mqtt-client-key
         - /etc/certs/client.key
-        image: mqtt2influxdb:0.1
+        image: mqtt2influxdb:0.2
         volumeMounts:
         - mountPath: /etc/certs
           name: certs
