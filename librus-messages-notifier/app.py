@@ -37,15 +37,16 @@ if len(current_state) == 0:  # No messages, librus issue
     print("No messages returned, skipping")
     sys.exit(1)
 
+last_message_ts = str(next(session.list_messages()).sent_at)
+
 try:
     with open(args.state_file) as f:
-        previous_state = [line.strip() for line in f.readlines()]
+        previous_state = f.read()
 except:
-    previous_state = []
+    previous_state = None
 
-if previous_state != current_state:
-    diff = list(Differ().compare(previous_state, current_state))
-    email = "<br />\n".join(diff)
+if previous_state != last_message_ts:
+    email = "<br />\n".join(current_state)
     print(email)
     spamer = Spamer(args.gmail_user, args.gmail_password, args.rcpt)
     spamer.send(email)
@@ -53,5 +54,4 @@ else:
     print("No change")
 
 with open(args.state_file, "w") as f:
-    for line in current_state:
-        f.write(f"{line}\n")
+    f.write(last_message_ts)
