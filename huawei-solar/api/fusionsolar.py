@@ -87,7 +87,7 @@ class FusionSolarException(Exception):
 
 
 class FusionSolar:
-    def __init__(self, username, password, timezone, region, station_id):
+    def __init__(self, username, password, timezone, region, station_id=None):
         self.username = username
         self.password = password
         self.timezone = timezone
@@ -96,20 +96,24 @@ class FusionSolar:
         self.session = None
         self.station = None
         self.api_base = None
+        self.csrf_token = None
 
     @backoff.on_exception(
         backoff.expo, (requests.exceptions.RequestException, FusionSolarException)
     )
-    def call_api(self, endpoint, params={}):
+    def call_api(self, endpoint, method="get", params={}):
         if self.session is None or self.api_base is None:
             self.login()
 
         url = f"{self.api_base}/{endpoint}"
-        response = requests.get(
+        func = getattr(requests, method)
+        response = func(
             url=url,
-            params=params,
+            params=params if method == "get" else None,
             cookies={"bspsession": self.session},
+            headers={"roarand": self.csrf_token},
             timeout=60,
+            json=params if method == "post" else None,
         )
 
         if response.headers["Content-Type"].startswith("text/html"):
@@ -147,20 +151,34 @@ class FusionSolar:
         auth_result = session.get(user_validation_result["redirectURL"])
         assert auth_result.status_code == 200
         self.session = session.cookies["bspsession"]
+
+        self.csrf_token = self.get_csrf_token()
         self.station = self.station_id or self.get_station_id()
         logging.info(
             f"Login successful, session: {self.session}, station: {self.station}"
         )
 
+    def get_csrf_token(self):
+        session_info = self.call_api("unisess/v1/auth/session")
+        return session_info["csrfToken"]
+
     def get_station_id(self):
-        company_info = self.call_api("rest/neteco/web/organization/v2/company/current")
-        company_id = company_info["data"]["moDn"]
         station_info = self.call_api(
-            "rest/neteco/web/config/domain/v1/power-station/station-list",
-            params={"params.parentDn": company_id},
+            "rest/pvms/web/station/v1/station/station-list",
+            method="post",
+            params={
+                "curPage": 1,
+                "pageSize": 10,
+                "gridConnectedTime": "",
+                "queryTime": 1666044000000,
+                "timeZone": 2,
+                "sortId": "createTime",
+                "sortDir": "DESC",
+                "locale": "en_US",
+            },
         )
         logging.debug("Station info: %s", station_info["data"])
-        return station_info["data"][0]["dn"]
+        return station_info["data"]["list"][0]["dn"]
 
     def list_devices(self):
         devices = self.call_api(
