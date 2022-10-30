@@ -34,9 +34,9 @@
     # between 19:30 and 23:00, every 20 minutes turn on for 5 minutes:
     Rule2
       ON Time#Initialized DO Backlog var1 0 ENDON
-      ON Time#Minute|20 DO event checkbathtime=%time%; event checknight=%time%; event runpumpifneeded ENDON
+      ON Time#Minute|20 DO Backlog var1 0; event checkbathtime=%time%; event checknight=%time%; event runpumpifneeded ENDON
       ON event#checkbathtime>=1170 DO var1 1 ENDON
-      ON event#checknight<=1380 DO var1 0 ENDON
+      ON event#checknight>=1380 DO var1 0 ENDON
       ON event#runpumpifneeded DO Backlog Power1 %var1%; RuleTimer1 300 ENDON
       ON Rules#Timer=1 DO Power1 off ENDON;
     Rule2 1
