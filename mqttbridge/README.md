@@ -22,6 +22,25 @@
 * Show voltage when toggled off: `SetOption21 1`
 * Set UTC: `Timezone 0`
 
+## Hot water pump setup
+
+    # sets location Toruń, PL (so the sunrise/suset is calculated properly) and timezone to match DST in Poland
+    Backlog Latitude 53.013790; Longitude 18.598444; Timezone 99; TimeDST 0,4,3,1,3,120; TimeSTD 0,4,10,1,3,60
+
+    # every 30 minutes: first turn on every 5 minutes, then turn off:
+    Rule1 ON Time#Minute|30 DO Backlog Power1 on; RuleTimer1 300 ENDON   ON Rules#Timer=1 DO Power1 off ENDON;
+    Rule1 1
+
+    # between 19:30 and 23:00, every 20 minutes turn on for 5 minutes:
+    Rule2
+      ON Time#Initialized DO Backlog var1 0 ENDON
+      ON Time#Minute|20 DO event checkbathtime=%time%; event checknight=%time%; event runpumpifneeded ENDON
+      ON event#checkbathtime>=1170 DO var1 1 ENDON
+      ON event#checknight<=1380 DO var1 0 ENDON
+      ON event#runpumpifneeded DO Backlog Power1 %var1%; RuleTimer1 300 ENDON
+      ON Rules#Timer=1 DO Power1 off ENDON;
+    Rule2 1
+
 ## Running mqtt2influxdb
 
     docker build -t mqtt2influxdb .
