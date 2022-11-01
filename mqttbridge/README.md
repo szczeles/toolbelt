@@ -1,5 +1,9 @@
 # Mqtt to remote influxdb bridge
 
+## Tasmota UIs
+
+* [Hot water pump](http://smartplug3/)
+
 ## Starting local Mosquitto
 
 [Setting up docker on OSMC](https://gist.github.com/Peregrinox/aa55c18866a851acc9d4e03a1054485c)
@@ -31,10 +35,12 @@
     Rule1 ON Time#Minute|30 DO Backlog Power1 on; RuleTimer1 300 ENDON   ON Rules#Timer=1 DO Power1 off ENDON;
     Rule1 1
 
-    # between 19:30 and 23:00, every 20 minutes turn on for 5 minutes:
+    # between 5:30-8:30 and 19:30-23:00, every 20 minutes turn on for 5 minutes:
     Rule2
       ON Time#Initialized DO Backlog var1 0 ENDON
-      ON Time#Minute|20 DO Backlog var1 0; event checkbathtime=%time%; event checknight=%time%; event runpumpifneeded ENDON
+      ON Time#Minute|20 DO Backlog var1 0; event checkmorning=%time%; event checkallteethclean=%time%; event checkbathtime=%time%; event checknight=%time%; event runpumpifneeded ENDON
+      ON event#checkmorning>=330 DO var1 1 ENDON
+      ON event#checkallteethclean>=510 DO var1 0 ENDON
       ON event#checkbathtime>=1170 DO var1 1 ENDON
       ON event#checknight>=1380 DO var1 0 ENDON
       ON event#runpumpifneeded DO Backlog Power1 %var1%; RuleTimer1 300 ENDON
