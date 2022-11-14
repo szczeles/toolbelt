@@ -1,3 +1,4 @@
+import html
 import json
 import logging
 import re
@@ -58,9 +59,9 @@ class MojLicznikAPI:
 
         self.session = session.cookies["JSESSIONID"]
         self.meters = [
-            PowerMeter(*meter)
+            PowerMeter(meter[0], meter[1], html.unescape(meter[2]))
             for meter in re.findall(
-                "{\\s+id: (\\d+),\\s+ppe: '[^']+',\\s+tmp: '1',\\s+tariffCode: '([^']+)',\\s+name: '([^']+)'\\s+}",
+                "{\\s+id:\\s+(\\d+),\\s+ppe: '[^']+',\\s+tmp: '[^']+',\\s+tariffCode: '([^']+)',\\s+name: '([^']+)'\\s+}",
                 main_page.text,
             )
         ]
