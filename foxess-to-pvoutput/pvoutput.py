@@ -4,8 +4,6 @@ from datetime import datetime, timedelta
 import backoff
 import requests
 
-from model import Output
-
 
 class PVOutputException(Exception):
     pass
@@ -31,10 +29,10 @@ class Status:
     voltage: float
 
     @staticmethod
-    def parse(statusline, timezone):
+    def parse(statusline):
         parts = statusline.split(",")
         return Status(
-            ts=timezone.localize(datetime.strptime(parts[0] + parts[1], "%Y%m%d%H:%M")),
+            ts=datetime.strptime(parts[0] + parts[1], "%Y%m%d%H:%M"),
             energy_generation=int(parts[2]) if parts[2] != "NaN" else None,
             power_generation=int(parts[3]) if parts[3] != "NaN" else None,
             energy_consumption=int(parts[4]) if parts[4] != "NaN" else None,
@@ -45,11 +43,10 @@ class Status:
         )
 
 
-class PVOutput(Output):
-    def __init__(self, system_id, api_key, timezone):
+class PVOutput:
+    def __init__(self, system_id, api_key):
         self.system_id = system_id
         self.api_key = api_key
-        self.timezone = timezone
 
     @backoff.on_exception(
         backoff.expo, (requests.exceptions.RequestException, PVOutputException)
@@ -74,7 +71,7 @@ class PVOutput(Output):
 
     def get_status(self, date=None):
         data = self.call_api("getstatus", {"d": date}).text
-        return Status.parse(data, self.timezone)
+        return Status.parse(data)
 
     def get_last_pushed_timestamp(self):
         try:
@@ -97,7 +94,7 @@ class PVOutput(Output):
         ]:
             data = ";".join(
                 [
-                    f'{s.ts.strftime("%Y%m%d")},{s.ts.strftime("%H:%M")},{int(s.get_daily_energy_wh())},{int(s.get_current_power_w())}'
+                    f'{s.ts.strftime("%Y%m%d")},{s.ts.strftime("%H:%M")},{int(s.daily_energy_wh)},{int(s.current_power_w)}'
                     for s in chunk
                 ]
             )

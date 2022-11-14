@@ -23,6 +23,7 @@ and API keys for PVOutput:
     docker run -d huawei-pvoutput:latest \
         --fusionsolar-user xxxx@xxxx.com \
         --fusionsolar-password xxxxx \
+        --fusionsolar-region xxxx \
         --pvoutput-api-key xxxxxxx \
         --pvoutput-system-id 00000 \
         [--postgres-url postgres://user:pass@host/db] \
@@ -35,3 +36,12 @@ If this is the first time you run the script, add
 indicating the date when your inverter was connected to 
 the network. Next scripts runs use status based on PVOutput
 data, so this parameter is not required.
+
+## Deploy on Kubernetes
+
+See [Kubernetes.md](Kubernetes.md)
+
+## Pushing to Github Docker Registry
+
+    docker build -t  docker.pkg.github.com/szczeles/toolbelt/huawei-solar:0.2 .
+    docker push docker.pkg.github.com/szczeles/toolbelt/huawei-solar:0.2

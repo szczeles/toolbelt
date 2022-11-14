@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mqtt2influx
+  namespace: mqtt
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mqtt2influx
+  template:
+    metadata:
+      labels:
+        app: mqtt2influx
+    spec:
+      containers:
+      - name: main
+        args:
+        - --mqtt-ca-crt
+        - /etc/certs/ca.crt 
+        - --mqtt-client-crt
+        - /etc/certs/client.crt
+        - --mqtt-client-key
+        - /etc/certs/client.key
+        image: mqtt2influxdb:0.2
+        volumeMounts:
+        - mountPath: /etc/certs
+          name: certs
+      volumes:
+      - name: certs
+        secret:
+          secretName: mqttbridge
