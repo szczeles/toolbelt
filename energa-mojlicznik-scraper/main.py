@@ -32,8 +32,10 @@ else:
     start_date = db_last_date
 
 logging.info("Start date: %s", start_date)
+end_date = min(date.today(), start_date + timedelta(14))
+logging.info("End date: %s", end_date)
 for meter in ml.get_meters():
-    data = ml.get_data_for_days(meter, start_date, date.today())
+    data = ml.get_data_for_days(meter, start_date, end_date)
     for db in dbs:
         logging.info("Saving %d records to %s", len(data), db[0])
         db[1].save(data)
