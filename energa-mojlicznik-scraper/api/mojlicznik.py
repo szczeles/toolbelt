@@ -91,7 +91,12 @@ class MojLicznikAPI:
         for date in [
             start_date + timedelta(n) for n in range((end_date - start_date).days + 1)
         ]:
-            results.extend(self.get_data_for_day(power_meter, date))
+            data_for_day = self.get_data_for_day(power_meter, date)
+            if data_for_day and len(data_for_day) != 24:
+                logging.warning(
+                    f"Missing {24 - len(data_for_day)} entires for day {date}"
+                )
+            results.extend(data_for_day)
         return results
 
     def get_data_for_day(self, power_meter, date):
