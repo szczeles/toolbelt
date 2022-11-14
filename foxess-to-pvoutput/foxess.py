@@ -2,6 +2,7 @@ import datetime
 import hashlib
 from dataclasses import dataclass
 
+import backoff
 import requests
 from dateutil.parser import parse
 
@@ -114,6 +115,7 @@ class FoxEssApi:
         ), f"Non 200 response from login: {resp.status_code}, {resp.text}"
         self.token = resp.json()["result"]["token"]
 
+    @backoff.on_exception(backoff.expo, requests.exceptions.RequestException)
     def _call_api(self, url, json=None):
         response = self._call_api_raw(url, json)
         if response.json().get("result") is None:
