@@ -14,7 +14,7 @@ import requests
 class PowerMeter:
     id: str
     tariff: str
-    code: str
+    name: str
 
 
 @dataclass
@@ -93,7 +93,10 @@ class MojLicznikAPI:
             start_date + timedelta(n) for n in range((end_date - start_date).days + 1)
         ]:
             data_for_day = self.get_data_for_day(power_meter, date)
-            if data_for_day and len(data_for_day) != 24:
+            if len(data_for_day) == 0:
+                logging.warning(f"No data for {date}, skipping check for the next days")
+                break
+            if len(data_for_day) != 24:
                 logging.warning(
                     f"Missing {24 - len(data_for_day)} entires for day {date}"
                 )
@@ -102,7 +105,7 @@ class MojLicznikAPI:
 
     def get_data_for_day(self, power_meter, date):
         logging.info(
-            "Getting data for power meter %s for date %s", power_meter.code, date
+            "Getting data for power meter %s for date %s", power_meter.name, date
         )
         imported = self.call_api(power_meter, date, "A+")
         exported = self.call_api(power_meter, date, "A-")

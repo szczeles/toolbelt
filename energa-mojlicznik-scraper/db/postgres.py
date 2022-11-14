@@ -20,7 +20,7 @@ class PostgreSQL:
         CREATE TABLE IF NOT EXISTS energy (
             ts timestamp without time zone,
             ts_local timestamp without time zone,
-            meter integer,
+            meter text,
             tariff varchar(4),
             imported integer,
             exported integer,
@@ -50,7 +50,7 @@ class PostgreSQL:
                 (
                     status.ts,
                     status.ts.replace(tzinfo=None),
-                    status.meter.code,
+                    status.meter.name,
                     status.meter.tariff,
                     status.imported,
                     status.exported,

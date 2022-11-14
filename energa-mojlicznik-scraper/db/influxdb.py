@@ -25,7 +25,7 @@ class InfluxDB:
                 {
                     "measurement": "energy",
                     "fields": {
-                        "meter": status.meter.code,
+                        "meter": status.meter.name,
                         "tariff": status.meter.tariff,
                         "imported": status.imported,
                         "exporeted": status.exported,
