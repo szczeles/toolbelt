@@ -76,22 +76,6 @@ spec:
     app: postgres
 ---
 apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: influx-storage
-  namespace: pv
-  labels:
-    type: local
-spec:
-  storageClassName: manual
-  capacity:
-    storage: 1Gi
-  accessModes:
-  - ReadWriteOnce
-  hostPath:
-    path: /volumes/pv-influx
----
-apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   namespace: pv
@@ -99,7 +83,6 @@ metadata:
 spec:
   accessModes:
   - ReadWriteOnce
-  storageClassName: manual
   resources:
     requests:
       storage: 1Gi
@@ -163,7 +146,8 @@ spec:
       - name: ghreg
       containers:
       - name: main
-        image: docker.pkg.github.com/szczeles/toolbelt/huawei-solar:0.2
+        #image: docker.pkg.github.com/szczeles/toolbelt/huawei-solar:0.21
+        image: huawei-solar:0.21
         envFrom:
         - secretRef:
             name: huawei-solar-secret
@@ -171,5 +155,5 @@ spec:
         - sh
         - -c
         args:
-        - 'python3 main.py --fusionsolar-user ${FUSIONSOLAR_USER} --fusionsolar-password ${FUSIONSOLAR_PASSWORD} --pvoutput-api-key ${PVOUTPUT_API_KEY} --pvoutput-system-id ${PVOUTPUT_SYSTEM_ID} --postgres-url postgres://postgres:secretpassword@postgres/postgres --influxdb-url http://influxdb:8086'
+        - 'python3 main.py --fusionsolar-user ${FUSIONSOLAR_USER} --fusionsolar-password ${FUSIONSOLAR_PASSWORD} --pvoutput-api-key ${PVOUTPUT_API_KEY} --pvoutput-system-id ${PVOUTPUT_SYSTEM_ID} --postgres-url postgres://postgres:secretpassword@postgres/postgres --influxdb-url http://influxdb:8086 --fusionsolar-region eu5'
         imagePullPolicy: "IfNotPresent"
