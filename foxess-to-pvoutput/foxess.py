@@ -3,7 +3,6 @@ import hashlib
 from dataclasses import dataclass
 
 import requests
-
 from dateutil.parser import parse
 
 
@@ -116,6 +115,14 @@ class FoxEssApi:
         self.token = resp.json()["result"]["token"]
 
     def _call_api(self, url, json=None):
+        response = self._call_api_raw(url, json)
+        if response.json().get("result") is None:
+            print("Result is none, need to re-login")
+            self._login()
+            response = self._call_api_raw(url, json)
+        return response
+
+    def _call_api_raw(self, url, json=None):
         if self.token is None:
             self._login()
         if json is None:
