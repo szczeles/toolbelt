@@ -1,3 +1,5 @@
+import base64
+import codecs
 import logging
 import re
 from collections import defaultdict
@@ -6,6 +8,9 @@ from datetime import datetime
 
 import backoff
 import requests
+from Crypto.Cipher import PKCS1_OAEP
+from Crypto.Hash import SHA384
+from Crypto.PublicKey import RSA
 
 
 @dataclass
@@ -133,19 +138,47 @@ class FusionSolar:
     def login(self):
         login_url = f"https://{self.region}.fusionsolar.huawei.com/unisso/login.action"
         session = requests.Session()
-        session.get(login_url)
+        login_page = session.get(login_url).text
+        assert (
+            "ssoCredentials.verifyCode" not in login_page
+        ), "Captha enabled on login page, try again later"
 
-        user_validation_response = session.post(
-            f"https://{self.region}.fusionsolar.huawei.com/unisso/v2/validateUser.action",
-            params={
-                "service": "/unisess/v1/auth?service=%2Fnetecowebext%2Fhome%2Findex.html"
-            },
-            json={
-                "organizationName": "",
-                "username": self.username,
-                "password": self.password,
-            },
-        )
+        pubkey = session.get(
+            f"https://{self.region}.fusionsolar.huawei.com/unisso/pubkey"
+        ).json()
+        if not pubkey["enableEncrypt"]:
+            user_validation_response = session.post(
+                f"https://{self.region}.fusionsolar.huawei.com/unisso/v2/validateUser.action",
+                params={
+                    "service": "/unisess/v1/auth?service=%2Fnetecowebext%2Fhome%2Findex.html",
+                },
+                json={
+                    "organizationName": "",
+                    "username": self.username,
+                    "password": self.password,
+                },
+            )
+        else:
+            cipher = PKCS1_OAEP.new(RSA.importKey(pubkey["pubKey"]), SHA384.new())
+            encrypted_password = base64.b64encode(
+                cipher.encrypt(self.password.encode("utf-8"))
+            ).decode("ascii")
+            user_validation_response = session.post(
+                f"https://{self.region}.fusionsolar.huawei.com/unisso/v3/validateUser.action",
+                params={
+                    "service": "/unisess/v1/auth?service=%2Fnetecowebext%2Fhome%2Findex.html",
+                    "timeStamp": pubkey["timeStamp"],
+                    "nonce": codecs.encode(
+                        encrypted_password[:16].encode("ascii"), "hex"
+                    ).decode(),
+                },
+                json={
+                    "organizationName": "",
+                    "username": self.username,
+                    "password": encrypted_password + pubkey["version"],
+                },
+            )
+
         user_validation_result = user_validation_response.json()
         self.api_base = user_validation_result["redirectURL"]
         auth_result = session.get(user_validation_result["redirectURL"])
