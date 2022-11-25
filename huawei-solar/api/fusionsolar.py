@@ -1,5 +1,6 @@
 import base64
 import codecs
+import hashlib
 import logging
 import re
 from collections import defaultdict
@@ -7,10 +8,9 @@ from dataclasses import dataclass
 from datetime import datetime
 
 import backoff
+import pkcs1
 import requests
-from Crypto.Cipher import PKCS1_OAEP
-from Crypto.Hash import SHA384
-from Crypto.PublicKey import RSA
+import rsa
 
 
 @dataclass
@@ -159,9 +159,13 @@ class FusionSolar:
                 },
             )
         else:
-            cipher = PKCS1_OAEP.new(RSA.importKey(pubkey["pubKey"]), SHA384.new())
+            key = rsa.PublicKey.load_pkcs1_openssl_pem(pubkey["pubKey"].encode("ascii"))
             encrypted_password = base64.b64encode(
-                cipher.encrypt(self.password.encode("utf-8"))
+                pkcs1.rsaes_oaep.encrypt(
+                    pkcs1.keys.RsaPublicKey(key.n, key.e),
+                    self.password.encode("utf-8"),
+                    hash_class=hashlib.sha384,
+                )
             ).decode("ascii")
             user_validation_response = session.post(
                 f"https://{self.region}.fusionsolar.huawei.com/unisso/v3/validateUser.action",
