@@ -7,8 +7,6 @@ import pytz
 
 from api.fusionsolar import FusionSolar
 from api.pvoutput import PVOutput
-from db.influxdb import InfluxDB
-from db.postgres import PostgreSQL
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--timezone", default="Europe/Warsaw")
@@ -53,8 +51,12 @@ logging.info("Available signals: %s", signals)
 pvoutput = PVOutput(args.pvoutput_system_id, args.pvoutput_api_key, timezone)
 outputs = [("PVOutput", pvoutput)]
 if args.postgres_url is not None:
+    from db.postgres import PostgreSQL
+
     outputs.insert(0, ("PostgreSQL", PostgreSQL(args.postgres_url, signals)))
 if args.influxdb_url is not None:
+    from db.influxdb import InfluxDB
+
     outputs.insert(0, ("InfluxDB", InfluxDB(args.influxdb_url)))
 
 last_pushed_ts = pvoutput.get_last_pushed_timestamp()
