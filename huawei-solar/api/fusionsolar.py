@@ -3,13 +3,15 @@ import codecs
 import hashlib
 import logging
 import re
+import time
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
 
 import backoff
-import pkcs1
 import requests
+
+import pkcs1
 import rsa
 
 
@@ -268,6 +270,8 @@ class FusionSolar:
         }
 
     def query_single_unit(self, device, timestamp, signals):
+        if timestamp > time.time():
+            return {}
         data = self.call_api(
             "rest/pvms/web/device/v1/device-history-data",
             params={
