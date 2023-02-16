@@ -9,9 +9,8 @@ from dataclasses import dataclass
 from datetime import datetime
 
 import backoff
-import requests
-
 import pkcs1
+import requests
 import rsa
 
 
