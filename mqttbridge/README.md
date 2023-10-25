@@ -29,7 +29,7 @@
 ## Hot water pump setup
 
     # sets location Toruń, PL (so the sunrise/suset is calculated properly) and timezone to match DST in Poland
-    Backlog Latitude 53.013790; Longitude 18.598444; Timezone 99; TimeDST 0,4,3,1,3,120; TimeSTD 0,4,10,1,3,60
+    Backlog Latitude 53.013790; Longitude 18.598444; Timezone 99; TimeDST 0,0,3,1,2,120; TimeSTD 0,0,10,1,3,60
 
     # every 30 minutes: first turn on every 5 minutes, then turn off:
     Rule1 ON Time#Minute|30 DO Backlog Power1 on; RuleTimer1 300 ENDON   ON Rules#Timer=1 DO Power1 off ENDON;
