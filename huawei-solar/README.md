@@ -43,5 +43,5 @@ See [Kubernetes.md](Kubernetes.md)
 
 ## Pushing to Github Docker Registry
 
-    docker build -t ghcr.io/szczeles/toolbelt/huawei-solar:0.22 .
-    docker push ghcr.io/szczeles/toolbelt/huawei-solar:0.22
+    docker build -t ghcr.io/szczeles/toolbelt/huawei-solar:0.24 .
+    docker push ghcr.io/szczeles/toolbelt/huawei-solar:0.24

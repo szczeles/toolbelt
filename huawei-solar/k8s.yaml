@@ -146,7 +146,7 @@ spec:
       - name: ghreg
       containers:
       - name: main
-        image: ghcr.io/szczeles/toolbelt/huawei-solar:0.22
+        image: ghcr.io/szczeles/toolbelt/huawei-solar:0.24
         envFrom:
         - secretRef:
             name: huawei-solar-secret

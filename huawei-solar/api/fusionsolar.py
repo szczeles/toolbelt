@@ -124,7 +124,7 @@ class FusionSolar:
 
         if response.headers["Content-Type"].startswith("text/html"):
             self.login()
-            return self.call_api(endpoint, params)
+            return self.call_api(endpoint, method, params)
 
         if response.status_code != 200:
             raise FusionSolarException(
