@@ -148,7 +148,7 @@ class FusionSolar:
             f"https://{self.region}.fusionsolar.huawei.com/unisso/pubkey"
         ).json()
         if not pubkey["enableEncrypt"]:
-            raise NotImplementedError("Is there a region with no ecryption enabled?")
+            raise NotImplementedError("Is there a region with no encryption enabled?")
         else:
             key = rsa.PublicKey.load_pkcs1_openssl_pem(pubkey["pubKey"].encode("ascii"))
             encrypted_password = base64.b64encode(
