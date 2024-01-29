@@ -6,10 +6,12 @@ import re
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
+from urllib.parse import urlparse
 
 import backoff
-import pkcs1
 import requests
+
+import pkcs1
 import rsa
 
 
@@ -115,8 +117,7 @@ class FusionSolar:
         response = func(
             url=url,
             params=params if method == "get" else None,
-            cookies={"bspsession": self.session},
-            headers={"roarand": self.csrf_token},
+            cookies={"dp-session": self.session},
             timeout=60,
             json=params if method == "post" else None,
         )
@@ -147,17 +148,7 @@ class FusionSolar:
             f"https://{self.region}.fusionsolar.huawei.com/unisso/pubkey"
         ).json()
         if not pubkey["enableEncrypt"]:
-            user_validation_response = session.post(
-                f"https://{self.region}.fusionsolar.huawei.com/unisso/v2/validateUser.action",
-                params={
-                    "service": "/unisess/v1/auth?service=%2Fnetecowebext%2Fhome%2Findex.html",
-                },
-                json={
-                    "organizationName": "",
-                    "username": self.username,
-                    "password": self.password,
-                },
-            )
+            raise NotImplementedError("Is there a region with no ecryption enabled?")
         else:
             key = rsa.PublicKey.load_pkcs1_openssl_pem(pubkey["pubKey"].encode("ascii"))
             encrypted_password = base64.b64encode(
@@ -184,20 +175,21 @@ class FusionSolar:
             )
 
         user_validation_result = user_validation_response.json()
-        self.api_base = user_validation_result["redirectURL"]
-        auth_result = session.get(user_validation_result["redirectURL"])
-        assert auth_result.status_code == 200
-        self.session = session.cookies["bspsession"]
-
-        self.csrf_token = self.get_csrf_token()
+        assert user_validation_result["errorMsg"] is None
+        assert (
+            user_validation_result["errorCode"] == "470"
+        )  # 470 seems like "successful login"
+        url = (
+            f"https://{self.region}.fusionsolar.huawei.com"
+            + user_validation_result["respMultiRegionName"][-1]
+        )
+        api_server_redirect = session.get(url)
+        self.api_base = f"https://{urlparse(api_server_redirect.url).netloc}"
+        self.session = session.cookies["dp-session"]
         self.station = self.station_id or self.get_station_id()
         logging.info(
             f"Login successful, session: {self.session}, station: {self.station}"
         )
-
-    def get_csrf_token(self):
-        session_info = self.call_api("unisess/v1/auth/session")
-        return session_info["csrfToken"]
 
     def get_station_id(self):
         station_info = self.call_api(

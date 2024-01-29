@@ -27,13 +27,13 @@ and API keys for PVOutput:
         --pvoutput-api-key xxxxxxx \
         --pvoutput-system-id 00000 \
         [--postgres-url postgres://user:pass@host/db] \
-        [--influxdb-url http://host:8086] 
+        [--influxdb-url http://host:8086]
 
 If this is the first time you run the script, add
 
     --start-date YYYY-MM-DD
 
-indicating the date when your inverter was connected to 
+indicating the date when your inverter was connected to
 the network. Next scripts runs use status based on PVOutput
 data, so this parameter is not required.
 
@@ -43,5 +43,5 @@ See [Kubernetes.md](Kubernetes.md)
 
 ## Pushing to Github Docker Registry
 
-    docker build -t  docker.pkg.github.com/szczeles/toolbelt/huawei-solar:0.2 .
-    docker push docker.pkg.github.com/szczeles/toolbelt/huawei-solar:0.2
+    docker build -t ghcr.io/szczeles/toolbelt/huawei-solar:0.22 .
+    docker push ghcr.io/szczeles/toolbelt/huawei-solar:0.22
