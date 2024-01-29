@@ -17,7 +17,7 @@ class PostgreSQL(Output):
 
         self.conn = psycopg2.connect(self.url)
         cur = self.conn.cursor()
-        fields = [f"{code} decimal(7, 3)" for code in self.signals.get_codes()]
+        fields = [f"{code} decimal(10, 3)" for code in self.signals.get_codes()]
         cur.execute(
             f"""
         CREATE TABLE IF NOT EXISTS pv (
