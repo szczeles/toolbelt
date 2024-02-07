@@ -15,7 +15,7 @@ parser.add_argument("--fusionsolar-password", required=True)
 parser.add_argument(
     "--fusionsolar-station-id",
     required=False,
-    help="Fixed station id, use if the app can't discover it automatically. Format: NE-01234567",
+    help="Fixed station id, use if the app can't discover it automatically. Format: NE=01234567",
 )
 parser.add_argument("--fusionsolar-region", required=True)
 parser.add_argument("--pvoutput-api-key", required=True)
