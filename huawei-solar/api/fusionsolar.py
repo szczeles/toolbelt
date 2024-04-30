@@ -3,6 +3,7 @@ import codecs
 import hashlib
 import logging
 import re
+import time
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
@@ -237,7 +238,7 @@ class FusionSolar:
     def query(self, device, date, signals):
         merged_data = {}
         for unit, subset in signals.split_by_unit().items():
-            single_unit_data = self.query_single_unit_2_days(device, date, subset)
+            single_unit_data = self.query_single_unit_since_ts(device, date, subset)
             for ts, values in single_unit_data.items():
                 if ts not in merged_data:
                     merged_data[ts] = dict()
@@ -253,11 +254,17 @@ class FusionSolar:
             for ts, values in merged_data.items()
         ]
 
-    def query_single_unit_2_days(self, device, date, signals):
-        return {
+    def query_single_unit_since_ts(self, device, date, signals):
+        base = {
             **self.query_single_unit(device, date.timestamp(), signals),
             **self.query_single_unit(device, date.timestamp() + 24 * 3600, signals),
         }
+        next_starting_ts = date.timestamp() + 2 * 24 * 3600
+        while len(base) == 0 and next_starting_ts < time.time():
+            base = {**base, **self.query_single_unit(device, next_starting_ts, signals)}
+            next_starting_ts += 24 * 3600
+
+        return base
 
     def query_single_unit(self, device, timestamp, signals):
         data = self.call_api(
