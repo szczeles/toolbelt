@@ -1,0 +1,19 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+requests = "*"
+pytz = "*"
+backoff = "*"
+psycopg2-binary = "*"
+influxdb-client = "1.16.0"
+rsa = "4.9"
+pkcs1 = "0.9.7"
+urllib3 = "<2"
+
+[dev-packages]
+
+[requires]
+python_version = "3.11"
