@@ -119,6 +119,7 @@ class FusionSolar:
             url=url,
             params=params if method == "get" else None,
             cookies={"dp-session": self.session},
+            headers={"roarand": self.csrf},
             timeout=60,
             json=params if method == "post" else None,
         )
@@ -187,6 +188,9 @@ class FusionSolar:
         api_server_redirect = session.get(url)
         self.api_base = f"https://{urlparse(api_server_redirect.url).netloc}"
         self.session = session.cookies["dp-session"]
+        self.csrf = session.get(
+            f"{self.api_base}/rest/dpcloud/auth/v1/keep-alive"
+        ).json()["payload"]
         self.station = self.station_id or self.get_station_id()
         logging.info(
             f"Login successful, session: {self.session}, station: {self.station}"
