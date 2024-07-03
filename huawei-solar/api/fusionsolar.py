@@ -6,7 +6,7 @@ import re
 import time
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import urlparse
 
 import backoff
@@ -104,7 +104,8 @@ class FusionSolar:
         self.session = None
         self.station = None
         self.api_base = None
-        self.csrf_token = None
+        self.csrf = None
+        self.csrf_time = None
 
     @backoff.on_exception(
         backoff.expo, (requests.exceptions.RequestException, FusionSolarException)
@@ -113,6 +114,7 @@ class FusionSolar:
         if self.session is None or self.api_base is None:
             self.login()
 
+        self.refresh_csrf()
         url = f"{self.api_base}/{endpoint}"
         func = getattr(requests, method)
         response = func(
@@ -188,13 +190,19 @@ class FusionSolar:
         api_server_redirect = session.get(url)
         self.api_base = f"https://{urlparse(api_server_redirect.url).netloc}"
         self.session = session.cookies["dp-session"]
-        self.csrf = session.get(
-            f"{self.api_base}/rest/dpcloud/auth/v1/keep-alive"
-        ).json()["payload"]
         self.station = self.station_id or self.get_station_id()
         logging.info(
             f"Login successful, session: {self.session}, station: {self.station}"
         )
+
+    def refresh_csrf(self):
+        if self.csrf is None or datetime.now() - self.csrf_time > timedelta(minutes=5):
+            self.csrf = requests.get(
+                f"{self.api_base}/rest/dpcloud/auth/v1/keep-alive",
+                cookies={"dp-session": self.session},
+            ).json()["payload"]
+            self.csrf_time = datetime.now()
+            logging.debug(f"CSRF refreshed: {self.csrf}")
 
     def get_station_id(self):
         station_info = self.call_api(
