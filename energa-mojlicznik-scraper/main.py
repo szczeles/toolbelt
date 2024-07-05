@@ -7,8 +7,8 @@ from db.influxdb import InfluxDB
 from db.postgres import PostgreSQL
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--mojlicznik-user")
-parser.add_argument("--mojlicznik-password")
+parser.add_argument("--mojlicznik-user", required=True)
+parser.add_argument("--mojlicznik-password", required=True)
 parser.add_argument("--postgres-url", required=False)
 parser.add_argument("--influxdb-url", required=False)
 
@@ -32,7 +32,7 @@ else:
     start_date = db_last_date
 
 logging.info("Start date: %s", start_date)
-end_date = min(date.today(), start_date + timedelta(90))
+end_date = min(date.today(), start_date + timedelta(30))
 logging.info("End date: %s", end_date)
 for meter in ml.get_meters():
     data = ml.get_data_for_days(meter, start_date, end_date)

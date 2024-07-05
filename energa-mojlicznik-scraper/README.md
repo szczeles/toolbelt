@@ -8,16 +8,15 @@ with local databases for energy import/export monitoring.
 
 First, build the image:
 
-    docker build -t energa-mojlicznik-scraper .
+    docker build -t energa-mojlicznik-scraper:0.1 .
 
-Then, run it, providing your user credentials for MojLicznik
-and databases urls.
+Then, schedule it, providing your user credentials for MojLicznik
+as secrets:
 
-    docker run -d energa-mojlicznik-scraper \
-        --mojlicznik-user email@domain.com \
-        --mojlicznik-password xxxxx \
-        [--postgres-url postgres://user:pass@host/db] \
-        [--influxdb-url http://host:8086]
+    kubectl create secret generic -n pv mojlicznik \
+        --from-literal=USERNAME=email@domain.com \
+        --from-literal=PASSWORD=xxxxx
+    kubectl apply -f cronjob.yaml
 
 ## Useful queries
 

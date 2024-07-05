@@ -1,0 +1,27 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  namespace: pv
+  name: mojlicznik
+spec:
+  schedule: "*/6 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 10
+  failedJobsHistoryLimit: 0
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: main
+            image: energa-mojlicznik-scraper:0.1
+            imagePullPolicy: Never
+            command:
+            - sh
+            - -c
+            args:
+            - python3 main.py --mojlicznik-user ${USERNAME} --mojlicznik-password ${PASSWORD} --postgres-url postgres://postgres:secretpassword@postgres/postgres --influxdb-url http://influxdb:8086
+            envFrom:
+            - secretRef:
+                name: mojlicznik
+          restartPolicy: Never
