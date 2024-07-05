@@ -1,0 +1,28 @@
+#mysql:
+#    enabled: false
+
+#traccar:
+#    database:
+#        driver: org.h2.Driver
+#       url: jdbc:h2:/opt/traccar/data/database
+
+externalService:
+    enabled: true
+    type: NodePort
+    protocolPorts:
+    - name: gt06
+      port: 5023
+      targetPort: gt06
+
+ingress:
+    enabled: true
+    annotations:
+        cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts:
+    - host: traccar.mlops.eu
+      paths:
+      - /
+    tls:
+    - hosts:
+      - traccar.mlops.eu
+      secretName: traccar-tls

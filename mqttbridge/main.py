@@ -6,6 +6,7 @@ import threading
 from datetime import datetime
 
 import backoff
+import pytz
 from influxdb_client import Configuration, InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 
@@ -15,6 +16,10 @@ influxdb_pusher = None
 args = None
 
 
+def parse_time(time):
+    return pytz.timezone("Europe/Warsaw").localize(datetime.fromisoformat(time))
+
+
 def on_connect(client, userdata, flags, rc):
     logging.info("Connected with result code %d", rc)
     client.subscribe(args.mqtt_topic)
@@ -22,8 +27,9 @@ def on_connect(client, userdata, flags, rc):
 
 def on_message(client, userdata, msg):
     if msg.topic == "tele/ecoal/STATE":
-        point = parse_ecoal_msg(json.loads(msg.payload.decode("utf-8")))
-    elif msg.topic.endswith("STATE"):
+        return  # not using ecoal anymore :-)
+
+    if msg.topic.endswith("STATE"):
         point = parse_state_msg(msg.topic, json.loads(msg.payload.decode("utf-8")))
     elif msg.topic.endswith("SENSOR"):
         point = parse_sensor_msg(msg.topic, json.loads(msg.payload.decode("utf-8")))
@@ -33,12 +39,6 @@ def on_message(client, userdata, msg):
         return
 
     influxdb_pusher.write(point)
-
-
-def parse_ecoal_msg(msg):
-    timestamp = datetime.fromtimestamp(msg["timestamp"])
-    del msg["timestamp"]
-    return Point.from_dict({"time": timestamp, "measurement": "ecoal", "fields": msg})
 
 
 def parse_mitemp_msg(topic, msg):
@@ -57,7 +57,7 @@ def parse_mitemp_msg(topic, msg):
 def parse_state_msg(topic, msg):
     return (
         Point.measurement("smartplugstate")
-        .time(msg["Time"])
+        .time(parse_time(msg["Time"]))
         .tag("spid", int(topic.split("/")[2]))
         .field("uptime_sec", msg["UptimeSec"])
         .field("heap", msg["Heap"])
@@ -75,7 +75,7 @@ def parse_state_msg(topic, msg):
 
 
 def parse_sensor_msg(topic, msg):
-    time = msg["Time"]
+    time = parse_time(msg["Time"])
     msg = msg["ENERGY"]
     return (
         Point.measurement("smartplugsensor")

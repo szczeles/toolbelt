@@ -17,12 +17,12 @@ spec:
       - name: main
         args:
         - --mqtt-ca-crt
-        - /etc/certs/ca.crt 
+        - /etc/certs/ca.crt
         - --mqtt-client-crt
         - /etc/certs/client.crt
         - --mqtt-client-key
         - /etc/certs/client.key
-        image: mqtt2influxdb:0.2
+        image: mqtt2influxdb:latest
         volumeMounts:
         - mountPath: /etc/certs
           name: certs

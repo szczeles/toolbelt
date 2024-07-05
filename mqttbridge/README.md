@@ -46,7 +46,7 @@
       ON event#runpumpifneeded DO Backlog Power1 %var1%; RuleTimer1 300 ENDON
       ON Rules#Timer=1 DO Power1 off ENDON;
     Rule2 1
-    
+
     # between 5:30 and 23:00, every 20 minutes turn on for 5 minutes:
     Rule2
       ON Time#Initialized DO Backlog var1 0 ENDON
@@ -56,7 +56,7 @@
       ON event#runpumpifneeded DO Backlog Power1 %var1%; RuleTimer1 300 ENDON
       ON Rules#Timer=1 DO Power1 off ENDON;
     Rule2 1
-        
+
     # between 5:30 and 23:00 run all time:
     Rule3
       ON Time#Initialized DO Backlog var1 0 ENDON
@@ -65,7 +65,7 @@
       ON event#checknight>=1380 DO var1 0 ENDON
       ON event#runpumpifneeded DO Backlog Power1 %var1% ENDON;
     Rule3 1
-    
+
 ## Remote mqtt broker
 
     helm upgrade -n mqtt eclipse-mosquitto-dev eclipse-mosquitto/ -f values.yaml  --set-file certs.ca.crt=ca.crt --set-file certs.server.crt=server.crt --set-file certs.server.key=server.key

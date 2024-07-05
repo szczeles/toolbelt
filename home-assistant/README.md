@@ -14,4 +14,3 @@ Front X-mas lights control
 
     $ mosquitto_pub -m OFF -t home/outside/lights/onoff/set -r
     $ mosquitto_pub -m ON -t home/outside/lights/onoff/set -r
-
