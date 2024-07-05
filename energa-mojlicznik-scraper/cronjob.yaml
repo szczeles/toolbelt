@@ -4,7 +4,7 @@ metadata:
   namespace: pv
   name: mojlicznik
 spec:
-  schedule: "*/6 * * * *"
+  schedule: "0 */6 * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 10
   failedJobsHistoryLimit: 0
