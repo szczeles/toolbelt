@@ -108,7 +108,9 @@ class FusionSolar:
         self.csrf_time = None
 
     @backoff.on_exception(
-        backoff.expo, (requests.exceptions.RequestException, FusionSolarException)
+        backoff.expo,
+        (requests.exceptions.RequestException, FusionSolarException),
+        max_time=7200,
     )
     def call_api(self, endpoint, method="get", params={}):
         if self.session is None or self.api_base is None:
