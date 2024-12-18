@@ -1,0 +1,285 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: web
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    email: szczeles@gmail.com
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    solvers:
+    - http01:
+        ingress:
+          class: traefik
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oauth2-proxy
+  namespace: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: oauth2-proxy
+  template:
+    metadata:
+      labels:
+        k8s-app: oauth2-proxy
+    spec:
+      containers:
+      - args:
+        - --provider=google
+        - --email-domain=*
+        - --upstream=file:///dev/null
+        - --http-address=0.0.0.0:4180
+        - --pass-user-headers=true
+        - --set-authorization-header=true
+        - --set-xauthrequest=true
+        - --reverse-proxy=true
+        - --cookie-domain=.mlops.eu
+        envFrom:
+        - secretRef:
+            name: oauth2proxy
+        image: quay.io/oauth2-proxy/oauth2-proxy:latest
+        imagePullPolicy: Always
+        name: oauth2-proxy
+        ports:
+        - containerPort: 4180
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oauth2-proxy
+  namespace: web
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 4180
+    protocol: TCP
+    targetPort: 4180
+  selector:
+    k8s-app: oauth2-proxy
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: traefik-cert
+  namespace: web
+spec:
+  commonName: mlops.eu
+  secretName: traefik-cert
+  dnsNames:
+    - mlops.eu
+    - grafana.mlops.eu
+    - whoami.mlops.eu
+  issuerRef:
+    kind: ClusterIssuer
+    name: letsencrypt-prod
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: oauth-errors
+  namespace: web
+spec:
+  errors:
+    status:
+      - "401-403"
+    service:
+      name: oauth2-proxy
+      port: 4180
+    query: "/oauth2/sign_in"
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: oauth2-proxy
+  namespace: web
+spec:
+  forwardAuth:
+    address: http://oauth2-proxy.web.svc:4180/oauth2/auth
+    trustForwardHeader: true
+    authResponseHeaders:
+      - X-Auth-Request-User
+      - X-Auth-Request-Email
+      - Set-Cookie
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: mark-admin
+  namespace: web
+spec:
+  headers:
+    customRequestHeaders:
+      X-Grafana-Role: "Admin"
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: traefik-ingress
+  namespace: web
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: "Host(`grafana.mlops.eu`) && PathPrefix(`/oauth2`)"
+      kind: Rule
+      middlewares:
+        - name: oauth-errors
+      services:
+        - name: oauth2-proxy
+          port: http
+    - match: Host(`grafana.mlops.eu`)
+      kind: Rule
+      middlewares:
+        - name: oauth-errors
+        - name: oauth2-proxy
+        - name: mark-admin
+      services:
+        - name: grafana
+          port: http
+    - match: "Host(`whoami.mlops.eu`) && PathPrefix(`/oauth2`)"
+      kind: Rule
+      middlewares:
+        - name: oauth-errors
+      services:
+        - name: oauth2-proxy
+          port: http
+    - match: Host(`whoami.mlops.eu`)
+      kind: Rule
+      middlewares:
+        - name: oauth-errors
+        - name: oauth2-proxy
+      services:
+        - name: whoami
+          port: web
+  tls:
+    secretName: traefik-cert
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: grafana
+  namespace: web
+spec:
+  selector:
+    matchLabels:
+      app: grafana
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      securityContext:
+        fsGroup: 472
+        supplementalGroups:
+          - 0
+      containers:
+        - name: grafana
+          image: grafana/grafana:latest
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: GF_AUTH_PROXY_ENABLED
+            value: "true"
+          - name: GF_AUTH_PROXY_HEADER_NAME
+            value: "X-Auth-Request-User"
+          - name: GF_AUTH_PROXY_HEADERS
+            value: "Name:X-Auth-Request-Email Role:X-Grafana-Role Email:X-Auth-Request-Email"
+          ports:
+            - containerPort: 3000
+              name: http-grafana
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /robots.txt
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            successThreshold: 1
+            timeoutSeconds: 2
+          livenessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            tcpSocket:
+              port: 3000
+            timeoutSeconds: 1
+          resources:
+            requests:
+              cpu: 250m
+              memory: 750Mi
+          volumeMounts:
+            - mountPath: /var/lib/grafana
+              name: grafana-pv
+  volumeClaimTemplates:
+  - metadata:
+      name: grafana-pv
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "local-path"
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: web
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: http-grafana
+  selector:
+    app: grafana
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: whoami
+  namespace: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: whoami
+  template:
+    metadata:
+      labels:
+        app: whoami
+    spec:
+      containers:
+        - name: whoami
+          image: traefik/whoami
+          ports:
+            - name: web
+              containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: whoami
+  namespace: web
+spec:
+  ports:
+    - name: web
+      port: 80
+      targetPort: web
+  selector:
+    app: whoami

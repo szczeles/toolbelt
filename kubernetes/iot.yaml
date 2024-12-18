@@ -1,0 +1,326 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: iot
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: iot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - env:
+        - name: POSTGRES_PASSWORD
+          value: secretpassword
+        image: postgres:12
+        name: postgres
+        ports:
+        - containerPort: 5432
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: postgres-storage
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "local-path"
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: influx
+  namespace: iot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: influx
+  template:
+    metadata:
+      labels:
+        app: influx
+    spec:
+      containers:
+      - image: influxdb:1.8.0
+        name: main
+        ports:
+        - containerPort: 8086
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /var/lib/influxdb
+          name: influx-storage
+  volumeClaimTemplates:
+  - metadata:
+      name: influx-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "local-path"
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: iot
+spec:
+  ports:
+  - port: 5432
+    protocol: TCP
+    targetPort: 5432
+  selector:
+    app: postgres
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: influxdb
+  namespace: iot
+spec:
+  ports:
+  - port: 8086
+    protocol: TCP
+    targetPort: 8086
+  selector:
+    app: influx
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: huawei-solar
+  namespace: iot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: huawei-solar
+  template:
+    metadata:
+      labels:
+        app: huawei-solar
+    spec:
+      containers:
+      - args:
+        - python3 main.py --fusionsolar-user ${FUSIONSOLAR_USER} --fusionsolar-password
+          ${FUSIONSOLAR_PASSWORD} --pvoutput-api-key ${PVOUTPUT_API_KEY} --pvoutput-system-id
+          ${PVOUTPUT_SYSTEM_ID} --postgres-url postgres://postgres:secretpassword@postgres/postgres
+          --influxdb-url http://influxdb:8086 --fusionsolar-region eu5
+        command:
+        - sh
+        - -c
+        envFrom:
+        - secretRef:
+            name: huawei-solar-secret
+        image: ghcr.io/szczeles/toolbelt/huawei-solar:0.30
+        name: main
+      imagePullSecrets:
+      - name: ghreg
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  namespace: iot
+  name: mojlicznik
+spec:
+  schedule: "0 */6 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 4
+  failedJobsHistoryLimit: 0
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          imagePullSecrets:
+          - name: ghreg
+          containers:
+          - name: main
+            image: ghcr.io/szczeles/toolbelt/energa-mojlicznik-scraper:0.1
+            command:
+            - sh
+            - -c
+            args:
+            - python3 main.py --mojlicznik-user ${USERNAME} --mojlicznik-password ${PASSWORD} --postgres-url postgres://postgres:secretpassword@postgres/postgres --influxdb-url http://influxdb:8086
+            envFrom:
+            - secretRef:
+                name: mojlicznik
+          restartPolicy: Never
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mosquitto
+  namespace: iot
+data:
+  mosquitto.conf: |-
+    persistence true
+    persistence_location /mosquitto/data/
+    log_dest stdout
+    listener 1884
+    listener 1883
+    protocol mqtt
+    cafile /mosquitto/config/certs/ca.crt
+    certfile /mosquitto/config/tls/tls.crt
+    keyfile /mosquitto/config/tls/tls.key
+    require_certificate true
+    use_subject_as_username true
+  ca.crt: |-
+    -----BEGIN CERTIFICATE-----
+    MIIDbTCCAlWgAwIBAgIUB9P9MZeXMVmgNCgJr9UUeInitGAwDQYJKoZIhvcNAQEL
+    BQAwRjELMAkGA1UEBhMCUEwxFDASBgNVBAoMC2duaWF6ZGVjemtvMQswCQYDVQQL
+    DAJDQTEUMBIGA1UEAwwLYzAubWxvcHMuZXUwHhcNMjQwMTI5MTMyNDA4WhcNMzQw
+    MTI2MTMyNDA4WjBGMQswCQYDVQQGEwJQTDEUMBIGA1UECgwLZ25pYXpkZWN6a28x
+    CzAJBgNVBAsMAkNBMRQwEgYDVQQDDAtjMC5tbG9wcy5ldTCCASIwDQYJKoZIhvcN
+    AQEBBQADggEPADCCAQoCggEBAL/yAkybjAo4xW2ryhCh89evWv+nkgTxC5S743Fk
+    ORQo8OydwQx4qovr3j0NJOrGqHzuRW+IAyWnH5u3eDhHjwh9+SGqNHGhPYoklmKx
+    VKO+f8lPDwekPUW4UIwGLWBwWd6WlmR4yjNNPgL8pHip5PGh7Y+eNK9xz2FNUui/
+    vlBvEjWwtI5fxHyEvqeg13quTNB1OnJT0i+2KguUihh6VdsLPH8JePLVluF/BaiC
+    n1tzZalWPD5EsbkKPFWf5HJ+lqCUG4Dr/nFVN81IKiH+eVV2x4+kdYFw2wiNo4oP
+    8mCLriC48OLe9vb75n9LQiW+Sdy7nWKHQTH5C64fqAuN8GMCAwEAAaNTMFEwHQYD
+    VR0OBBYEFCJh0TkXynEk+8PW6wXhwSoTuHlOMB8GA1UdIwQYMBaAFCJh0TkXynEk
+    +8PW6wXhwSoTuHlOMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEB
+    ALUtzY8UNkoYs8F8wQ3lI+5dzwVyrdUuAeXBdmy3E0WXJlZ5hnmT4wk1MvApFzW9
+    iJwMlpHIYs/Lh4QGVLxbFXL8tgGQjKEA7uSgqNXPNU7M52+YHPTHw+jjRwmPt2Fk
+    XMzRJF7zs9Odpxnk6YTfwg58SaXXhlI5OQFkjGmdJq5X8ecF1e3Zazk/nrnRqwv1
+    TksF2T8P+LrHyzYSfF+vYdgwABaaufv34QUXzHI/jl2RyqNhQiXnZlpXXO1zMd+3
+    h8fHBMPEv+fuEkrWIwmTcBQk10c7uPO8N1dMRa6wtuUS0Xam04tpVXDAfY36ZaB4
+    c4222sn3ZJZ3r76blnUgwNw=
+    -----END CERTIFICATE-----
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mosquitto
+  namespace: iot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mosquitto
+  volumeClaimTemplates:
+  - metadata:
+      name: mosquitto-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "local-path"
+      resources:
+        requests:
+          storage: 1Gi
+  template:
+    metadata:
+      labels:
+        app: mosquitto
+    spec:
+      containers:
+      - image: eclipse-mosquitto:1.6.7
+        name: eclipse-mosquitto
+        ports:
+        - containerPort: 1884
+          name: mqtt
+          protocol: TCP
+        - containerPort: 1883
+          name: mqtts
+          protocol: TCP
+        livenessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          successThreshold: 1
+          tcpSocket:
+            port: 1884
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          tcpSocket:
+            port: 1884
+          timeoutSeconds: 1
+        volumeMounts:
+        - mountPath: /mosquitto/config/mosquitto.conf
+          name: mosquitto-conf
+          readOnly: true
+          subPath: mosquitto.conf
+        - mountPath: /mosquitto/config/certs/ca.crt
+          name: mosquitto-conf
+          readOnly: true
+          subPath: ca.crt
+        - mountPath: /mosquitto/config/tls
+          name: mosquitto-certs
+          readOnly: true
+        - mountPath: /mosquitto/data
+          name: mosquitto-data
+      volumes:
+      - name: mosquitto-conf
+        configMap:
+          name: mosquitto
+      - name: mosquitto-certs
+        secret:
+          secretName: mosquitto
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mosquitto-external
+  namespace: iot
+spec:
+  type: NodePort
+  ports:
+  - name: mqtts
+    nodePort: 30505
+    port: 1883
+    protocol: TCP
+    targetPort: mqtts
+  selector:
+    app: mosquitto
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mosquitto-internal
+  namespace: iot
+spec:
+  ports:
+  - name: mqtt
+    port: 1884
+    protocol: TCP
+    targetPort: mqtt
+  selector:
+    app: mosquitto
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mqtt2influx
+  namespace: iot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mqtt2influx
+  template:
+    metadata:
+      labels:
+        app: mqtt2influx
+    spec:
+      containers:
+      - name: main
+        image: mqtt2influx:0.4
