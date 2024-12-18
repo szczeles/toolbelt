@@ -8,7 +8,7 @@ with local databases for energy import/export monitoring.
 
 First, build the image:
 
-    docker build -t energa-mojlicznik-scraper:0.1 .
+    docker build -t ghcr.io/szczeles/toolbelt/energa-mojlicznik-scraper:0.1 .
 
 Then, schedule it, providing your user credentials for MojLicznik
 as secrets:
