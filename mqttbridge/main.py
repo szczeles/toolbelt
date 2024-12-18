@@ -121,11 +121,11 @@ if __name__ == "__main__":
     logging.getLogger().setLevel(logging.INFO)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--influxdb-url", default="http://influxdb.pv.svc:8086")
+    parser.add_argument("--influxdb-url", default="http://influxdb.iot.svc:8086")
     parser.add_argument("--mqtt-topic", default="tele/#")
     parser.add_argument("--mqtt-client-id", default="MQTTInfluxDBBridge")
-    parser.add_argument("--mqtt-host", default="c0.mlops.eu")
-    parser.add_argument("--mqtt-port", type=int, default=30505)
+    parser.add_argument("--mqtt-host", default="mosquitto-internal")
+    parser.add_argument("--mqtt-port", type=int, default=1884)
     parser.add_argument("--mqtt-ca-crt")
     parser.add_argument("--mqtt-client-crt")
     parser.add_argument("--mqtt-client-key")
@@ -136,11 +136,12 @@ if __name__ == "__main__":
     influxdb_pusher.start()
 
     mqtt_client = mqtt.Client(args.mqtt_client_id)
-    mqtt_client.tls_set(
-        args.mqtt_ca_crt,
-        args.mqtt_client_crt,
-        args.mqtt_client_key,
-    )
+    if args.mqtt_ca_crt and args.mqtt_client_crt and args.mqtt_client_key:
+        mqtt_client.tls_set(
+            args.mqtt_ca_crt,
+            args.mqtt_client_crt,
+            args.mqtt_client_key,
+        )
     mqtt_client.on_connect = on_connect
     mqtt_client.on_message = on_message
     mqtt_client.connect(args.mqtt_host, args.mqtt_port)
