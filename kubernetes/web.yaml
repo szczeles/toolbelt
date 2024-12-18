@@ -81,6 +81,7 @@ spec:
     - mlops.eu
     - grafana.mlops.eu
     - whoami.mlops.eu
+    - ntfy.mlops.eu
   issuerRef:
     kind: ClusterIssuer
     name: letsencrypt-prod
@@ -163,6 +164,11 @@ spec:
       services:
         - name: whoami
           port: web
+    - match: Host(`ntfy.mlops.eu`)
+      kind: Rule
+      services:
+        - name: ntfy
+          port: http
   tls:
     secretName: traefik-cert
 ---
@@ -283,3 +289,78 @@ spec:
       targetPort: web
   selector:
     app: whoami
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ntfy
+  namespace: web
+data:
+  server.yml: |
+    # Template: https://github.com/binwiederhier/ntfy/blob/main/server/server.yml
+    base-url: https://ntfy.mlops.eu
+    auth-file: /var/lib/ntfy/user.db
+    cache-file: /var/lib/ntfy/cache.db
+    auth-default-access: deny-all
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ntfy
+  namespace: web
+spec:
+  selector:
+    matchLabels:
+      app: ntfy
+  serviceName: ntfy
+  template:
+    metadata:
+      labels:
+        app: ntfy
+    spec:
+      containers:
+      - name: ntfy
+        image: binwiederhier/ntfy
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c"]
+        envFrom:
+        - secretRef:
+            name: oauth2proxy
+        args:
+        - ntfy user add --role=admin admin; ntfy serve
+        ports:
+        - containerPort: 80
+          name: http
+        volumeMounts:
+        - name: config
+          mountPath: "/etc/ntfy"
+          readOnly: true
+        - name: cache
+          mountPath: "/var/lib/ntfy"
+      volumes:
+        - name: config
+          configMap:
+            name: ntfy
+  volumeClaimTemplates:
+  - metadata:
+      name: cache
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: local-path
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ntfy
+  namespace: web
+spec:
+  selector:
+      app: ntfy
+  ports:
+    - protocol: TCP
+      port: 80
+      name: http
+      targetPort: http

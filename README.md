@@ -56,3 +56,17 @@ docker run -d -p 1883:1883 --restart always eclipse-mosquitto
 192.168.0.94    smartplug1
 192.168.0.220   smartplug2
 ```
+
+## Home backup to t630
+
+```
+rsync -av --progress \
+    --exclude .cache \
+    --exclude .local/share/flatpak \
+    --exclude .local/lib \
+    --exclude .config/Slack \
+    --exclude .Upwork \
+    --exclude .m2 \
+    --exclude .local/share/virtualenv  \
+    /home/mario/ t630:backup/
+```

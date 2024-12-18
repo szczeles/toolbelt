@@ -46,6 +46,11 @@ Secrets for oauth2proxy:
         --from-literal=OAUTH2_PROXY_CLIENT_SECRET=$OAUTH2_PROXY_CLIENT_SECRET \
         --from-literal=OAUTH2_PROXY_COOKIE_SECRET=$OAUTH2_PROXY_COOKIE_SECRET
 
+Password for ntfy:
+
+    kubectl create secret generic -n web ntfy \
+        --from-literal=NTFY_PASSWORD=$NTFY_PASSWORD
+
 ## Manifests
 
 MQTT, influx, postgres, huawei, energa:
@@ -56,7 +61,7 @@ Cert-manager:
 
     $ kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.16.2/cert-manager.yaml
 
-Grafana, oauth2proxy, whoami:
+Grafana, oauth2proxy, whoami, ntfy:
 
     $ kubectl apply -f web.yaml
 
