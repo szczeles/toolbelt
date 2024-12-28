@@ -61,12 +61,13 @@ docker run -d -p 1883:1883 --restart always eclipse-mosquitto
 
 ```
 rsync -av --progress \
-    --exclude .cache \
-    --exclude .local/share/flatpak \
-    --exclude .local/lib \
-    --exclude .config/Slack \
-    --exclude .Upwork \
-    --exclude .m2 \
-    --exclude .local/share/virtualenv  \
+    --exclude /.cache \
+    --exclude /.local/share/flatpak \
+    --exclude /.local/lib \
+    --exclude /.config/Slack \
+    --exclude /.Upwork \
+    --exclude /.m2 \
+    --exclude /.local/share/virtualenv  \
+    --exclude .venv \
     /home/mario/ t630:backup/
 ```

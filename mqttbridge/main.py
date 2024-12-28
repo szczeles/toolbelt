@@ -25,6 +25,13 @@ def on_connect(client, userdata, flags, rc):
     client.subscribe(args.mqtt_topic)
 
 
+def on_message_handling_exceptions(client, userdata, msg):
+    try:
+        on_message(client, userdata, msg)
+    except:
+        logging.exception("Unable to process %s: %s", msg.topic, msg.payload)
+
+
 def on_message(client, userdata, msg):
     if msg.topic == "tele/ecoal/STATE":
         return  # not using ecoal anymore :-)
@@ -143,6 +150,6 @@ if __name__ == "__main__":
             args.mqtt_client_key,
         )
     mqtt_client.on_connect = on_connect
-    mqtt_client.on_message = on_message
+    mqtt_client.on_message = on_message_handling_exceptions
     mqtt_client.connect(args.mqtt_host, args.mqtt_port)
     mqtt_client.loop_forever()
