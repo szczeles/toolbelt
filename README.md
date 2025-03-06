@@ -71,3 +71,8 @@ rsync -av --progress \
     --exclude .venv \
     /home/mario/ t630:backup/
 ```
+
+## MG5750 scanner setup
+
+1. Install `airscan-discover`
+2. Run it and copy results into `[devices]` section of `/etc/sane.d/airscan.conf`
