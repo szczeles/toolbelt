@@ -9,6 +9,11 @@ Installs:
  * grafana
  * whoami service
 
+## Images
+
+    docker build -t geoguess:0.1 .
+    docker save geoguess:0.1 | sudo k3s ctr images import -
+
 ## Secrets
 
 First, create docker registry creds:
@@ -25,13 +30,15 @@ Then, create a secret for Huawei Fusionsolar and PVOutput:
         --from-literal=FUSIONSOLAR_USER=$FUSIONSOLAR_USER \
         --from-literal=FUSIONSOLAR_PASSWORD=$FUSIONSOLAR_PASSWORD \
         --from-literal=PVOUTPUT_API_KEY=$PVOUTPUT_API_KEY \
-        --from-literal=PVOUTPUT_SYSTEM_ID=$PVOUTPUT_SYSTEM_ID
+        --from-literal=PVOUTPUT_SYSTEM_ID=$PVOUTPUT_SYSTEM_ID \
+        --from-literal=PSQL_URI=$PSQL_URI
 
-Then, a secret for MojLiczni:
+Then, a secret for MojLicznik:
 
     kubectl create secret generic -n iot mojlicznik \
         --from-literal=USERNAME=$MOJLICZNIK_USERNAME \
-        --from-literal=PASSWORD=$MOJLICZNIK_PASSWORD
+        --from-literal=PASSWORD=$MOJLICZNIK_PASSWORD \
+        --from-literal=PSQL_URI=$PSQL_URI
 
 Then, certs for Mosquitto:
 
@@ -50,6 +57,18 @@ Password for ntfy:
 
     kubectl create secret generic -n web ntfy \
         --from-literal=NTFY_PASSWORD=$NTFY_PASSWORD
+
+GeoGuess:
+
+    kubectl create secret generic -n web geoguess \
+        --from-literal=VUE_APP_API_KEY=$VUE_APP_API_KEY \
+        --from-literal=VUE_APP_FIREBASE_API_KEY=$VUE_APP_FIREBASE_API_KEY \
+        --from-literal=VUE_APP_FIREBASE_PROJECT_ID=$VUE_APP_FIREBASE_PROJECT_ID \
+        --from-literal=VUE_APP_FIREBASE_MESSAGING_SENDER_ID=$VUE_APP_FIREBASE_MESSAGING_SENDER_ID \
+        --from-literal=VUE_APP_FIREBASE_APP_ID=$VUE_APP_FIREBASE_APP_ID \
+        --from-literal=VUE_APP_FIREBASE_AUTH_DOMAIN=$VUE_APP_FIREBASE_AUTH_DOMAIN \
+        --from-literal=VUE_APP_FIREBASE_DATABASE_URL=$VUE_APP_FIREBASE_DATABASE_URL \
+        --from-literal=VUE_APP_STORAGE_BUCKET=$VUE_APP_STORAGE_BUCKET
 
 ## Manifests
 

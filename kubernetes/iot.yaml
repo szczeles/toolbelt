@@ -91,6 +91,21 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  name: postgres-external
+  namespace: iot
+spec:
+  ports:
+  - port: 31234
+    nodePort: 31234
+    protocol: TCP
+    targetPort: 5432
+  selector:
+    app: postgres
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
   name: influxdb
   namespace: iot
 spec:
@@ -121,7 +136,7 @@ spec:
       - args:
         - python3 main.py --fusionsolar-user ${FUSIONSOLAR_USER} --fusionsolar-password
           ${FUSIONSOLAR_PASSWORD} --pvoutput-api-key ${PVOUTPUT_API_KEY} --pvoutput-system-id
-          ${PVOUTPUT_SYSTEM_ID} --postgres-url postgres://postgres:secretpassword@postgres/postgres
+          ${PVOUTPUT_SYSTEM_ID} --postgres-url ${PSQL_URI}
           --influxdb-url http://influxdb:8086 --fusionsolar-region eu5
         command:
         - sh
@@ -157,7 +172,7 @@ spec:
             - sh
             - -c
             args:
-            - python3 main.py --mojlicznik-user ${USERNAME} --mojlicznik-password ${PASSWORD} --postgres-url postgres://postgres:secretpassword@postgres/postgres --influxdb-url http://influxdb:8086
+            - python3 main.py --mojlicznik-user ${USERNAME} --mojlicznik-password ${PASSWORD} --postgres-url ${PSQL_URI} --influxdb-url http://influxdb:8086
             envFrom:
             - secretRef:
                 name: mojlicznik
@@ -323,4 +338,4 @@ spec:
     spec:
       containers:
       - name: main
-        image: mqtt2influx:0.4
+        image: localhost/mqtt2influx:0.4
