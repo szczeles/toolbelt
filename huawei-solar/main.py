@@ -63,15 +63,20 @@ last_pushed_ts = pvoutput.get_last_pushed_timestamp()
 logging.info(f"Last data transfer to PV Output: {last_pushed_ts}")
 if last_pushed_ts is not None:
     starting_ts = last_pushed_ts
+elif args.start_date is None:
+    starting_ts = (datetime.now(timezone) - timedelta(days=12)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    logging.info(f"Starting at earlist possible date, 12 days ago: {starting_ts}")
 else:
     starting_ts = timezone.localize(datetime.strptime(args.start_date, "%Y-%m-%d"))
     if (timezone.localize(datetime.now()) - starting_ts).days < 14:
         logging.info(f"Starting with PV connection date: {starting_ts}")
     else:
-        starting_ts = (datetime.now(timezone) - timedelta(days=13)).replace(
+        starting_ts = (datetime.now(timezone) - timedelta(days=12)).replace(
             hour=0, minute=0, second=0, microsecond=0
         )
-        logging.info(f"Starting at earlist possible date, 13 days ago: {starting_ts}")
+        logging.info(f"Starting at earlist possible date, 12 days ago: {starting_ts}")
 
 while True:
     data = fusionsolar.query(device, starting_ts, signals)

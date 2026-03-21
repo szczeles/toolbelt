@@ -128,7 +128,7 @@ class FusionSolar:
             json=params if method == "post" else None,
         )
 
-        if response.headers["Content-Type"].startswith("text/html"):
+        if "Content-Type" in response.headers and response.headers["Content-Type"].startswith("text/html"):
             self.login()
             return self.call_api(endpoint, method, params)
 
@@ -187,7 +187,7 @@ class FusionSolar:
         )  # 470 seems like "successful login"
         url = (
             f"https://{self.region}.fusionsolar.huawei.com"
-            + user_validation_result["respMultiRegionName"][-1]
+            + user_validation_result["respMultiRegionName"][-2]
         )
         api_server_redirect = session.get(url)
         self.api_base = f"https://{urlparse(api_server_redirect.url).netloc}"
