@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 # Konfiguracja: Hasło wymagane do zapisywania (dodawanie/edycja/usuwanie biegów)
 ADMIN_PASSWORD = os.environ.get("RUN_PASSWORD")
-DATABASE = "/data/runs.db"
+DATABASE = "/tmp/runs.db"
 
 def get_db():
     db = getattr(g, '_database', None)
@@ -314,8 +314,6 @@ HTML_TEMPLATE = """
 
         if (password) {
             verifyPasswordSilent(password);
-        } else {
-            renderApp();
         }
 
         async function verifyPasswordSilent(pwd) {
@@ -480,11 +478,14 @@ HTML_TEMPLATE = """
                     <div class="flex justify-between items-center pt-1 text-xs">
                         <span class="text-slate-400">Dodane przez <strong class="text-slate-600">${ev.contributor || 'Anonim'}</strong></span>
                         <div class="flex items-center space-x-2">
+                            <button onclick="addToGoogleCalendar(${ev.id})" title="Dodaj do Google Calendar" class="bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold px-2.5 py-1 rounded-lg transition flex items-center gap-1">
+                                <i class="fa-solid fa-calendar-plus text-xs"></i> <span>GCal</span>
+                            </button>
                             <button onclick="rsvpEvent(${ev.id})" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-semibold px-2.5 py-1 rounded-lg transition flex items-center gap-1">
                                 <i class="fa-solid fa-heart text-xs"></i> <span>${ev.rsvps} idzie</span>
                             </button>
                             ${isContributor ? `
-                                <button onclick='openEditModal(${JSON.stringify(ev)})' class="text-slate-400 hover:text-indigo-600 p-1"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick='openEditModal(${JSON.stringify(ev).replace(/'/g, "&#39;")})' class="text-slate-400 hover:text-indigo-600 p-1"><i class="fa-solid fa-pen"></i></button>
                                 <button onclick="deleteEvent(${ev.id})" class="text-slate-400 hover:text-rose-600 p-1"><i class="fa-solid fa-trash"></i></button>
                             ` : ''}
                         </div>
@@ -492,6 +493,41 @@ HTML_TEMPLATE = """
                 `;
                 list.appendChild(item);
             });
+        }
+
+        function addToGoogleCalendar(id) {
+            const ev = events.find(item => item.id === id);
+            if (!ev) return;
+
+            const title = encodeURIComponent(ev.title);
+            const location = encodeURIComponent(ev.location);
+            
+            let dates = "";
+            if (ev.time) {
+                const cleanDate = ev.date.replace(/-/g, '');
+                const cleanTime = ev.time.replace(/:/g, '') + '00';
+                const startStr = `${cleanDate}T${cleanTime}`;
+                
+                const [hours, minutes] = ev.time.split(':').map(Number);
+                const endHours = String((hours + 2) % 24).padStart(2, '0');
+                const endCleanTime = `${endHours}${String(minutes).padStart(2, '0')}00`;
+                const endStr = `${cleanDate}T${endCleanTime}`;
+                
+                dates = `${startStr}/${endStr}`;
+            } else {
+                const cleanDate = ev.date.replace(/-/g, '');
+                const d = new Date(ev.date);
+                const nextDay = new Date(d);
+                nextDay.setDate(d.getDate() + 1);
+                const nextDateStr = nextDay.toISOString().split('T')[0].replace(/-/g, '');
+                dates = `${cleanDate}/${nextDateStr}`;
+            }
+
+            const detailsText = `Dystans: ${ev.distance}\\nDodane przez: ${ev.contributor || 'Anonim'}${ev.description ? '\\n\\n' + ev.description : ''}${ev.link ? '\\n\\nLink: ' + ev.link : ''}`;
+            const details = encodeURIComponent(detailsText);
+
+            const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}&location=${location}`;
+            window.open(url, '_blank');
         }
 
         function getBadgeColor(distance) {
